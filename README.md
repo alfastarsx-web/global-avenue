@@ -6,6 +6,18 @@ korporativ sayt. [Texnik topshiriq (TZ) v1.0](#tz-qamrovi) asosida qurilgan.
 **Stack:** Next.js 16 (App Router, RSC) · TypeScript · CSS (build-step'siz, framework'siz)
 · ikki til (uz/ru) · build step'da statik generatsiya
 
+## 🔗 Demo
+
+**https://alfastarsx-web.github.io/global-avenue/**
+
+`main` ga har push'da GitHub Actions avtomatik qayta joylashtiradi
+(`.github/workflows/pages.yml`).
+
+> Demo statik hostingda turadi, shuning uchun backend yo'q: ariza formasi
+> to'liq ishlaydi, lekin arizani hech qayerga yubormaydi va buni foydalanuvchiga
+> ochiq aytadi. Serverga qo'yilganda (`npm run build && npm start`) forma
+> Telegram va CRM'ga real yuboradi.
+
 ---
 
 ## Ishga tushirish
@@ -142,6 +154,21 @@ foydalanuvchilar bir soat ichida yangisini ko'radi.
 ariza saqlanadi. IP bo'yicha daqiqasiga 5 ta so'rov cheklovi bor (spam-bot).
 
 ## Deploy
+
+### GitHub Pages (demo)
+
+Avtomatik — `main` ga push qiling. Mahalliy sinash uchun:
+
+```bash
+BASE_PATH=/global-avenue NEXT_PUBLIC_BASE_PATH=/global-avenue \
+NEXT_PUBLIC_DEMO_MODE=1 npm run build:static
+```
+
+`out/` papkasi hosil bo'ladi. `scripts/build-static.sh` build vaqtida
+`middleware.ts` va `app/api` ni vaqtincha chetga oladi (Next.js statik
+eksportda ularni qo'llab-quvvatlamaydi) va oxirida joyiga qaytaradi.
+
+### To'liq funksional (server)
 
 Sayt Node.js server talab qiladi (middleware + `/api/lead`), shuning uchun
 statik eksport emas:
