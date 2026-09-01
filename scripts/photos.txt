@@ -1,0 +1,57 @@
+# Global Avenue — sayt fotosuratlari (manba: Unsplash, Unsplash License)
+# format: fayl_yo'li | unsplash_id | kenglik | tavsif
+
+photos/hero.jpg|1783794278513-dc6d1dd83243|2000|Qurilayotgan binolar, to'q sariq quyosh botishi (Instagram uslubi)
+
+# TwinEra — ikki minora, markaz, premium, panoramali oyna
+projects/twinera.jpg|1787423545486-da5d1696cb31|1600|Balkonli zamonaviy bino, golden hour
+projects/twinera-2.jpg|1771337745248-a5af2f4ee951|1400|Baland turar-joy binosi, ko'k osmon
+projects/twinera-3.jpg|1759539997864-99c062dc9345|1400|Iliq quyosh nuridagi zamonaviy binolar
+projects/twinera-4.jpg|1776537237450-73226455726f|1400|Zamonaviy minoralar, yorqin osmon
+projects/twinera-5.jpg|1759167631280-bbe160588120|1400|Uchta baland bino, yashillik orqali
+
+# IZMIR — premium, past qavatli, terassalar, O'rta yer dengizi uslubi
+projects/izmir.jpg|1787838413673-5e7da69ae16d|1600|Oq fasad, zinapoyasimon balkonlar, palma daraxtlari
+projects/izmir-2.jpg|1771337744229-6b2bcd699d09|1400|Yumaloq balkonli zamonaviy bino
+projects/izmir-3.jpg|1765031435134-2f4e8a53ad23|1400|Yumaloq balkonli baland bino
+projects/izmir-4.jpg|1787423545414-f273119acde0|1400|Yog'och balkonli zamonaviy bino
+projects/izmir-5.jpg|1782904152900-2f9e4d91e025|1400|Naqshli balkonlar, yashil daraxt yonida
+
+# Marocco — oilaviy, sharqona bezakli fasad, iliq bej rang
+projects/marocco.jpg|1759831656559-66ab9a2e0546|1600|Bej binoning burchagi, ko'k osmon
+projects/marocco-2.jpg|1779248326702-5cd9cb2a4cc8|1400|Ochiq rangli balkonli bino
+projects/marocco-3.jpg|1782324230227-6ffd2838da55|1400|Balkonli ko'p qavatli binolar
+projects/marocco-4.jpg|1667861135218-d8f65699d585|1400|Ko'p balkonli bino
+projects/marocco-5.jpg|1774881435019-215a3d675628|1400|Daraxtlar orasidan ko'p oynali bino
+
+# Ashgabad — oq fasadlar, tinch mahalla, keng hovli
+projects/ashgabad.jpg|1686487735840-998d32ab9aee|1600|Balkonli oq baland bino
+projects/ashgabad-2.jpg|1773088766693-9e847793bca5|1400|Zamonaviy turar-joy binolari
+projects/ashgabad-3.jpg|1775550472628-127da6bd3356|1400|Bir xil balkonlar qatori
+projects/ashgabad-4.jpg|1771337745296-6a8da8c66ec0|1400|Baland turar-joy binosi
+projects/ashgabad-5.jpg|1767557426231-695aa4105d2b|1400|Kuzgi daraxtlar orasidagi bino
+
+# NRG Qorasuv — tayyorgarlik bosqichi, suv bo'yi, past qavatli
+projects/nrg.jpg|1762344694205-b71db6dee791|1600|Qurilayotgan turar-joy binolari, kran
+projects/nrg-2.jpg|1767122225720-1d11b6a7f79f|1400|Qurilayotgan bino, kran, ko'k osmon
+projects/nrg-3.jpg|1766270596305-d0cfb9efaa52|1400|Tomida o'simliklari bor bino
+projects/nrg-4.jpg|1704457031528-adfa0abf6bba|1400|G'ishtli fasadli zamonaviy bino
+projects/nrg-5.jpg|1731485034506-06d4bf25f5c4|1400|Suv bo'yidagi baland bino
+
+# Qurilish jarayoni — golden hour kranlar, ishchilar (Instagram uslubi)
+progress/p1.jpg|1709934645644-f055bb2b75de|1200|Bir nechta kran
+progress/p2.jpg|1758399750112-366c3c804eb7|1200|Kranlar, to'q sariq quyosh botishi
+progress/p3.jpg|1692166525289-be57203f44a9|1200|Qurilayotgan bino, ishchilar
+progress/p4.jpg|1704892712277-05dd8ba8831b|1200|Qurilish maydonidagi ishchilar
+progress/p5.jpg|1689264337786-11efb44e298c|1200|Kran, botayotgan quyosh fonida
+progress/p6.jpg|1694521787162-5373b598945c|1200|Qurilish tepasidagi ishchilar
+progress/p7.jpg|1647735282077-c12699af40be|1200|Qurilish maydoni yonidagi odamlar
+progress/p8.jpg|1758127080058-dfe30ed490d9|1200|Kranlar, tog' fonidagi quyosh botishi
+
+# Blog muqovalari
+blog/post-1.jpg|1692166567037-4009225486ac|1400|Qurilish maydonidagi jamoa
+blog/post-2.jpg|1632201147654-f6f54427e538|1400|Qurilayotgan bino tepasidagi odamlar
+blog/post-3.jpg|1744782351841-9cc6b86a5add|1400|Uy kalitlari, zinapoya fonida
+blog/post-4.jpg|1771337744229-6b2bcd699d09|1400|Yumaloq balkonli bino — IZMIR fasadi
+blog/post-5.jpg|1759428679273-11d914866394|1400|Kalitlar va kichik uy maketlari
+blog/post-6.jpg|1723256761894-e7a8f5b47349|1400|Kran, bulutli osmon fonida
