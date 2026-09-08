@@ -90,6 +90,9 @@ export default function Footer({ locale, d }: { locale: Locale; d: Dictionary })
             © {year} {site.name}. {d.footer.rights}
           </p>
           <p className="site-footer__note">{d.footer.madeNote}</p>
+          <a href="/admin.html" className="site-footer__admin">
+            Admin
+          </a>
         </div>
       </div>
     </footer>
