@@ -25,8 +25,7 @@ export default function Footer({ locale, d }: { locale: Locale; d: Dictionary })
           <div className="site-footer__brand">
             <span className="brand site-footer__brandmark">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="brand__mark-img--static" src="/logo/global-avenue-mark-gold.png" alt="" width={34} height={30} />
-              <span className="brand__name brand__name--lg">GLOBAL AVENUE</span>
+              <img className="site-footer__brandmark-img" src="/logo/global-avenue-lockup-white.png" alt={site.name} />
             </span>
             <p className="site-footer__about">{d.footer.about}</p>
             <div className="social">

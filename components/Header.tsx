@@ -52,17 +52,11 @@ export default function Header({ locale, d }: { locale: Locale; d: Dictionary })
   return (
     <header className={`site-header${solid ? ' is-solid' : ''}`}>
       <div className="container site-header__inner">
-        <Link href={`/${locale}`} className="brand" aria-label={site.name}>
-          <span className="brand__mark" aria-hidden="true">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="brand__mark-img brand__mark-img--gold" src="/logo/global-avenue-mark-gold.png" alt="" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="brand__mark-img brand__mark-img--dark" src="/logo/global-avenue-mark-dark.png" alt="" />
-          </span>
-          <span className="brand__text">
-            <span className="brand__name">GLOBAL AVENUE</span>
-            <span className="brand__sub">{site.city[locale]}</span>
-          </span>
+        <Link href={`/${locale}`} className="brand brand__lockup" aria-label={site.name}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="brand__lockup-img brand__lockup-img--white" src="/logo/global-avenue-lockup-white.png" alt={site.name} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="brand__lockup-img brand__lockup-img--dark" src="/logo/global-avenue-lockup-dark.png" alt={site.name} />
         </Link>
 
         <nav className="site-nav" aria-label={d.nav.menu}>
@@ -115,8 +109,7 @@ export default function Header({ locale, d }: { locale: Locale; d: Dictionary })
           <div className="mobile-menu__top">
             <span className="brand mobile-menu__brand">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="brand__mark-img--static" src="/logo/global-avenue-mark-gold.png" alt="" width={30} height={26} />
-              <span className="brand__name">GLOBAL AVENUE</span>
+              <img className="mobile-menu__brand-img" src="/logo/global-avenue-lockup-white.png" alt={site.name} />
             </span>
             <button
               type="button"
