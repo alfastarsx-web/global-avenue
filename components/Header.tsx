@@ -54,10 +54,10 @@ export default function Header({ locale, d }: { locale: Locale; d: Dictionary })
       <div className="container site-header__inner">
         <Link href={`/${locale}`} className="brand" aria-label={site.name}>
           <span className="brand__mark" aria-hidden="true">
-            <svg viewBox="0 0 32 32" width="30" height="30" fill="none">
-              <path d="M4 27V11.5L16 5l12 6.5V27" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-              <path d="M11 27v-8h10v8" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-            </svg>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="brand__mark-img brand__mark-img--gold" src="/logo/global-avenue-mark-gold.png" alt="" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="brand__mark-img brand__mark-img--dark" src="/logo/global-avenue-mark-dark.png" alt="" />
           </span>
           <span className="brand__text">
             <span className="brand__name">GLOBAL AVENUE</span>
@@ -113,7 +113,11 @@ export default function Header({ locale, d }: { locale: Locale; d: Dictionary })
       <div id="mobile-menu" className={`mobile-menu${open ? ' is-open' : ''}`} hidden={!open}>
         <div className="mobile-menu__inner">
           <div className="mobile-menu__top">
-            <span className="brand__name">GLOBAL AVENUE</span>
+            <span className="brand mobile-menu__brand">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="brand__mark-img--static" src="/logo/global-avenue-mark-gold.png" alt="" width={30} height={26} />
+              <span className="brand__name">GLOBAL AVENUE</span>
+            </span>
             <button
               type="button"
               className="mobile-menu__close"
