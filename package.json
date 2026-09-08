@@ -8,9 +8,13 @@
     "start": "next start -p 3100",
     "lint": "next lint",
     "check": "tsc --noEmit",
-    "build:static": "bash scripts/build-static.sh"
+    "build:static": "bash scripts/build-static.sh",
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma migrate deploy"
   },
   "dependencies": {
+    "@prisma/client": "6.19.3",
+    "bcryptjs": "^3.0.3",
     "next": "^16.3.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
@@ -19,6 +23,7 @@
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "prisma": "6.19.3",
     "typescript": "^5.7.2"
   }
 }

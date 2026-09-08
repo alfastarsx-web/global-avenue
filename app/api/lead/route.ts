@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { appendFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -92,6 +93,22 @@ async function pushToCrm(lead: LeadPayload) {
   return { ok: res.ok, skipped: false };
 }
 
+/** Ariza admin panelda ko'rinishi uchun bazaga ham yoziladi */
+async function saveLeadToDb(lead: LeadPayload) {
+  await prisma.lead.create({
+    data: {
+      name: lead.name,
+      phone: lead.phone,
+      projectName: lead.project || '',
+      status: 'yangi',
+      source: lead.source || 'sayt',
+      interest: lead.interest || '',
+      comment: lead.comment || '',
+      activity: '[]',
+    },
+  });
+}
+
 /** Fallback: lidlarni faylga yozib boramiz — Telegram/CRM ishlamasa ham yo'qolmaydi */
 async function archive(lead: LeadPayload & { ip: string; at: string }) {
   try {
@@ -141,10 +158,15 @@ export async function POST(req: Request) {
   const at = new Date().toISOString();
   await archive({ ...lead, ip, at });
 
-  const [tg, crm] = await Promise.allSettled([notifyTelegram(lead), pushToCrm(lead)]);
+  const [tg, crm, dbSave] = await Promise.allSettled([
+    notifyTelegram(lead),
+    pushToCrm(lead),
+    saveLeadToDb(lead),
+  ]);
 
   if (tg.status === 'rejected') console.error('telegram notify failed', tg.reason);
   if (crm.status === 'rejected') console.error('crm push failed', crm.reason);
+  if (dbSave.status === 'rejected') console.error('lead db save failed', dbSave.reason);
 
   return NextResponse.json({
     ok: true,

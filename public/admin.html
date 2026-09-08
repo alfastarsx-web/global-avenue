@@ -603,19 +603,99 @@
     return '<span class="pill pill-'+m.c+'">'+esc(m.t)+'</span>';
   }
 
-  /* ============ DB ============ */
-  var db = null, downloadsCap = null;
+  /* ============ DB (REST /api/admin/* orqali) ============ */
+  var API_BASE = "/api/admin";
+  var listeners = {}; // collection name -> {cb, errCb}
+  var settingsListener = null;
 
-  function col(name){ return db.collection(name); }
+  function onUnauthorized(){
+    var appEl = document.querySelector(".app");
+    if(appEl) appEl.style.display = "none";
+    var gate = document.getElementById("loginGate");
+    gate.style.display = "flex";
+    document.getElementById("loginError").hidden = true;
+    bindLoginForm();
+  }
 
-  function subscribe(name, target){
+  function handleRes(res){
+    if(res.status === 401){ onUnauthorized(); throw new Error("unauthorized"); }
+    if(!res.ok){
+      return res.json().catch(function(){ return {}; }).then(function(j){
+        throw new Error(j.error || ("HTTP "+res.status));
+      });
+    }
+    if(res.status === 204) return null;
+    return res.json();
+  }
+  function apiGet(url){ return fetch(url, {credentials:"same-origin"}).then(handleRes); }
+  function apiPost(url, data){
+    return fetch(url, {method:"POST", credentials:"same-origin", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)}).then(handleRes);
+  }
+  function apiPatch(url, data){
+    return fetch(url, {method:"PATCH", credentials:"same-origin", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)}).then(handleRes);
+  }
+  function apiPut(url, data){
+    return fetch(url, {method:"PUT", credentials:"same-origin", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)}).then(handleRes);
+  }
+  function apiDelete(url){
+    return fetch(url, {method:"DELETE", credentials:"same-origin"}).then(handleRes);
+  }
+
+  function refetch(name){
+    var l = listeners[name];
+    if(!l) return Promise.resolve();
+    return apiGet(API_BASE+"/"+name).then(function(rows){
+      l.cb({ docs: rows.map(function(row){ return { id: row.id, data: function(){ return row; } }; }) });
+    }).catch(function(err){
+      if(l.errCb) l.errCb(err);
+    });
+  }
+
+  function refetchSettings(){
+    if(!settingsListener) return Promise.resolve();
+    return apiGet(API_BASE+"/settings").then(function(data){
+      settingsListener({ exists:true, data: function(){ return data; } });
+    }).catch(function(err){ console.error("settings", err); });
+  }
+
+  function docRef(name, id){
+    return {
+      id: id,
+      update: function(data){ return apiPatch(API_BASE+"/"+name+"/"+id, data).then(function(r){ refetch(name); return r; }); },
+      set: function(data){
+        if(name === "settings"){ return apiPut(API_BASE+"/settings", data).then(function(r){ refetchSettings(); return r; }); }
+        var op = id ? apiPatch(API_BASE+"/"+name+"/"+id, data) : apiPost(API_BASE+"/"+name, data);
+        return op.then(function(r){ refetch(name); return r; });
+      },
+      delete: function(){ return apiDelete(API_BASE+"/"+name+"/"+id).then(function(r){ refetch(name); return r; }); },
+      onSnapshot: function(cb){ settingsListener = cb; refetchSettings(); }
+    };
+  }
+
+  function col(name){
+    return {
+      doc: function(id){ return docRef(name, id || null); },
+      add: function(data){ return apiPost(API_BASE+"/"+name, data).then(function(r){ refetch(name); return r; }); },
+      onSnapshot: function(cb, errCb){ listeners[name] = {cb:cb, errCb:errCb}; refetch(name); }
+    };
+  }
+
+  var db = {
+    collection: col,
+    doc: function(path){
+      var parts = path.split("/");
+      return docRef(parts[0], parts[1]);
+    }
+  };
+
+  function subscribe(name){
     col(name).onSnapshot(function(snap){
       state[name] = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
       state.ready[name] = true;
       route(false);
     }, function(err){
       console.error(name, err);
-      if(err.code !== "unavailable") toast("Ma'lumot yuklashda xatolik: "+name, true);
+      if(err.message !== "unauthorized") toast("Ma'lumot yuklashda xatolik: "+name, true);
     });
   }
 
@@ -626,7 +706,7 @@
       }
       state.ready.settings = true;
       route(false);
-    }, function(err){ console.error("settings", err); });
+    });
   }
 
   /* ============ RENDER: SHELL ============ */
@@ -997,13 +1077,13 @@
       }).join(","));
     });
     var csv = "﻿" + lines.join("\r\n");
-    if(downloadsCap){
-      downloadsCap.save({filename:"global-avenue-lidlar.csv", data: new Blob([csv], {type:"text/csv;charset=utf-8"})})
-        .then(function(){ toast("CSV fayl saqlandi"); })
-        .catch(function(e){ if(e && e.code!=="declined") toast("Eksport imkonsiz: "+(e&&e.message||"xatolik"), true); });
-    } else {
-      toast("Yuklab olish funksiyasi bu ko'rinishda mavjud emas", true);
-    }
+    var blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "global-avenue-lidlar.csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    toast("CSV fayl yuklandi");
   }
 
   /* ---- Lead detail drawer: fields + activity/notes timeline ---- */
@@ -1169,7 +1249,7 @@
         ) : "";
         return '<div class="media-card">'+
           '<div class="media-thumb">'+
-            (m.image_data ? '<img src="'+m.image_data+'" alt="'+esc(m.caption||"")+'">' : ICON.media)+
+            (m.image_url ? '<img src="'+m.image_url+'" alt="'+esc(m.caption||"")+'">' : ICON.media)+
             '<span class="media-cat-tag">'+esc(MEDIA_CATEGORY[m.category]||"Boshqa")+'</span>'+
             actions+
           '</div>'+
@@ -1182,9 +1262,9 @@
     c.innerHTML = lockedNote("media") + '<div class="filter-row">'+chips+'</div>' + grid;
   }
 
-  /* image: resize + compress in-browser (canvas), so an uploaded photo fits comfortably
-     inside the 256 KiB per-document limit without needing a separate file store. */
-  function compressImageFile(file){
+  /* image: resize in-browser (canvas) to a reasonable max size, then upload the
+     real file to the server (/api/admin/upload) — the DB only ever stores a URL. */
+  function compressImageToBlob(file){
     return new Promise(function(resolve, reject){
       var reader = new FileReader();
       reader.onerror = function(){ reject(new Error("Faylni o'qib bo'lmadi")); };
@@ -1192,27 +1272,32 @@
         var img = new Image();
         img.onerror = function(){ reject(new Error("Rasmni ochib bo'lmadi")); };
         img.onload = function(){
-          var steps = [[1100,0.75],[1100,0.55],[800,0.6],[600,0.55],[420,0.5]];
+          var maxDim = 1600;
+          var scale = Math.min(1, maxDim/Math.max(img.width, img.height));
+          var w = Math.max(1, Math.round(img.width*scale));
+          var h = Math.max(1, Math.round(img.height*scale));
           var canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
           var ctx = canvas.getContext("2d");
-          var result = null;
-          for(var i=0;i<steps.length;i++){
-            var maxDim = steps[i][0], q = steps[i][1];
-            var scale = Math.min(1, maxDim/Math.max(img.width, img.height));
-            var w = Math.max(1, Math.round(img.width*scale));
-            var h = Math.max(1, Math.round(img.height*scale));
-            canvas.width = w; canvas.height = h;
-            ctx.clearRect(0,0,w,h);
-            ctx.drawImage(img,0,0,w,h);
-            var url = canvas.toDataURL("image/jpeg", q);
-            result = {url:url, w:w, h:h};
-            if(url.length*0.75 <= 170000) break;
-          }
-          resolve(result);
+          ctx.drawImage(img,0,0,w,h);
+          canvas.toBlob(function(blob){
+            if(!blob){ reject(new Error("Siqib bo'lmadi")); return; }
+            resolve({blob:blob, w:w, h:h});
+          }, "image/jpeg", 0.82);
         };
         img.src = ev.target.result;
       };
       reader.readAsDataURL(file);
+    });
+  }
+
+  function uploadImageFile(file){
+    return compressImageToBlob(file).then(function(res){
+      var fd = new FormData();
+      fd.append("file", res.blob, "image.jpg");
+      return fetch(API_BASE+"/upload", {method:"POST", credentials:"same-origin", body:fd})
+        .then(handleRes)
+        .then(function(json){ return {url: json.url, w: res.w, h: res.h}; });
     });
   }
 
@@ -1230,8 +1315,8 @@
           '<span class="t">Rasmni tanlash uchun bosing</span><span class="s">JPG yoki PNG · avtomatik siqiladi</span>'+
           '<input type="file" accept="image/*" id="mediaFile">'+
         '</label>'+
-        '<div class="upload-preview-wrap" id="previewWrap" '+(m.image_data?'':'style="display:none;"')+'>'+
-          '<img class="upload-preview" id="previewImg" src="'+(m.image_data||"")+'">'+
+        '<div class="upload-preview-wrap" id="previewWrap" '+(m.image_url?'':'style="display:none;"')+'>'+
+          '<img class="upload-preview" id="previewImg" src="'+(m.image_url||"")+'">'+
         '</div>'+
         '<div class="field"><label>Tavsif</label><input name="caption" value="'+esc(m.caption||"")+'" placeholder="Masalan: TwinEra — asosiy fasad"></div>'+
         '<div class="field-row">'+
@@ -1251,7 +1336,7 @@
       if(!file) return;
       var dropLbl = document.getElementById("uploadDrop").querySelector(".t");
       dropLbl.textContent = "Qayta ishlanmoqda…";
-      compressImageFile(file).then(function(res){
+      uploadImageFile(file).then(function(res){
         pendingImage = res;
         dropLbl.textContent = "Boshqa rasm tanlash";
         document.getElementById("previewWrap").style.display = "block";
@@ -1267,8 +1352,8 @@
       var fd = new FormData(e.target);
       var data = {};
       fd.forEach(function(v,k){ data[k]=v; });
-      if(!pendingImage && !m.image_data){ toast("Iltimos, rasm tanlang", true); return; }
-      if(pendingImage){ data.image_data = pendingImage.url; data.width = pendingImage.w; data.height = pendingImage.h; }
+      if(!pendingImage && !m.image_url){ toast("Iltimos, rasm tanlang", true); return; }
+      if(pendingImage){ data.image_url = pendingImage.url; data.width = pendingImage.w; data.height = pendingImage.h; }
       var proj = state.projects.filter(function(p){return p.id===data.project_id;})[0];
       data.project_name = proj?proj.name:"";
       if(!existing) data.created_at = new Date().toISOString();
@@ -1547,7 +1632,7 @@
       if(!file) return;
       var dropLbl = document.getElementById("uploadDrop").querySelector(".t");
       dropLbl.textContent = "Qayta ishlanmoqda…";
-      compressImageFile(file).then(function(res){
+      uploadImageFile(file).then(function(res){
         pendingImage = res;
         dropLbl.textContent = "Boshqa rasm tanlash";
         document.getElementById("previewWrap").style.display = "block";
@@ -1719,19 +1804,7 @@
     closeModalOnOverlay();
   }
 
-  /* ============ AUTH GATE ============ */
-  var AUTH_KEY = "ga_admin_auth";
-  var AUTH_HASH = "4729ac56fbed656b8ed97599782a442f79e569193cd146e9c1680b5241272695";
-
-  function sha256Hex(str){
-    var enc = new TextEncoder().encode(str);
-    return crypto.subtle.digest("SHA-256", enc).then(function(buf){
-      var bytes = new Uint8Array(buf), hex = "";
-      for(var i=0;i<bytes.length;i++){ hex += bytes[i].toString(16).padStart(2,"0"); }
-      return hex;
-    });
-  }
-
+  /* ============ AUTH GATE (server session cookie orqali) ============ */
   function bindLoginForm(){
     var form = document.getElementById("loginForm");
     var errEl = document.getElementById("loginError");
@@ -1739,43 +1812,34 @@
     form.onsubmit = function(e){
       e.preventDefault();
       errEl.hidden = true;
-      if(!window.crypto || !window.crypto.subtle){
-        errEl.textContent = "Brauzeringiz qo'llab-quvvatlamaydi (HTTPS kerak)";
+      apiPost(API_BASE+"/login", {password: pwdEl.value}).then(function(){
+        document.getElementById("loginGate").style.display = "none";
+        var appEl = document.querySelector(".app");
+        if(appEl) appEl.style.display = "";
+        startApp();
+      }).catch(function(){
+        errEl.textContent = "Parol noto'g'ri";
         errEl.hidden = false;
-        return;
-      }
-      sha256Hex(pwdEl.value).then(function(hash){
-        if(hash === AUTH_HASH){
-          try{ localStorage.setItem(AUTH_KEY, "1"); }catch(err){}
-          document.getElementById("loginGate").style.display = "none";
-          startApp();
-        } else {
-          errEl.textContent = "Parol noto'g'ri";
-          errEl.hidden = false;
-          pwdEl.value = "";
-          pwdEl.focus();
-        }
+        pwdEl.value = "";
+        pwdEl.focus();
       });
     };
   }
 
   function logout(){
-    try{ localStorage.removeItem(AUTH_KEY); }catch(e){}
-    location.reload();
+    fetch(API_BASE+"/logout", {method:"POST", credentials:"same-origin"}).finally(function(){ location.reload(); });
   }
 
   /* ============ INIT ============ */
   function init(){
     var gate = document.getElementById("loginGate");
-    var authed = false;
-    try{ authed = localStorage.getItem(AUTH_KEY) === "1"; }catch(e){}
-    if(authed){
+    apiGet(API_BASE+"/session").then(function(){
       gate.style.display = "none";
       startApp();
-    } else {
+    }).catch(function(){
       gate.style.display = "flex";
       bindLoginForm();
-    }
+    });
   }
 
   function startApp(){
@@ -1790,26 +1854,14 @@
     var logoutBtn = document.getElementById("btnLogout");
     if(logoutBtn) logoutBtn.onclick = logout;
 
-    if(!window.claude || !window.claude.use){
-      document.getElementById("content").innerHTML = '<div class="empty-state">'+ICON.box+'<div class="t" style="margin-top:10px">Ma\'lumotlar bazasi mavjud emas</div><div class="s">Bu ko\'rinishda db imkoniyati ishlamaydi.</div></div>';
-      return;
-    }
-
-    Promise.all([window.claude.use("db"), window.claude.use("downloads")]).then(function(res){
-      db = res[0]; downloadsCap = res[1];
-      if(!db){
-        document.getElementById("content").innerHTML = '<div class="empty-state">'+ICON.box+'<div class="t" style="margin-top:10px">Ma\'lumotlar bazasiga ulanib bo\'lmadi</div><div class="s">Sahifani qayta yuklab ko\'ring.</div></div>';
-        return;
-      }
-      subscribe("projects");
-      subscribe("units");
-      subscribe("leads");
-      subscribe("posts");
-      subscribe("staff");
-      subscribe("media");
-      subscribe("testimonials");
-      subscribeSettings();
-    });
+    subscribe("projects");
+    subscribe("units");
+    subscribe("leads");
+    subscribe("posts");
+    subscribe("staff");
+    subscribe("media");
+    subscribe("testimonials");
+    subscribeSettings();
   }
 
   if(document.readyState === "loading"){

@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  location    String?
+  status      String   @default("qurilmoqda")
+  delivery    String?
+  priceFrom   Float?
+  priceTo     Float?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  units        Unit[]
+  leads        Lead[]
+  media        Media[]
+  testimonials Testimonial[]
+}
+
+model Unit {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectName String?
+  block       String?
+  floor       Int?
+  rooms       Int?
+  area        Float?
+  price       Float?
+  status      String   @default("bosh")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model Lead {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String?
+  projectId    String?
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectName  String?
+  status       String   @default("yangi")
+  assignedTo   String?
+  staff        Staff?   @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
+  nextFollowUp String?
+  source       String?
+  interest     String?
+  comment      String?
+  activity     String   @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([assignedTo])
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  title       String
+  excerpt     String?
+  body        String?
+  author      String?
+  status      String    @default("draft")
+  coverImage  String?
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Media {
+  id          String   @id @default(cuid())
+  caption     String?
+  category    String   @default("other")
+  imageUrl    String
+  width       Int?
+  height      Int?
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectName String?
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model Testimonial {
+  id         String   @id @default(cuid())
+  clientName String
+  projectId  String?
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectName String?
+  rating     Int      @default(5)
+  source     String?
+  youtubeUrl String?
+  text       String?
+  status     String   @default("published")
+  createdAt  DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model Staff {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  role      String   @default("sotuv")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leads Lead[]
+}
+
+model Settings {
+  id          Int    @id @default(1)
+  companyName String @default("Global Avenue")
+  phone       String @default("")
+  address     String @default("")
+  instagram   String @default("")
+  telegram    String @default("")
+  hours       String @default("")
+}
