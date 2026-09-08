@@ -608,25 +608,69 @@
 
   function col(name){ return db.collection(name); }
 
+  function watchdog(name, ms){
+    return setTimeout(function(){
+      if(!state.ready[name]){
+        console.warn(name, "timed out waiting for db, unblocking UI");
+        state.ready[name] = true;
+        toast("Ma'lumot yuklanishi kutilganidan uzoq davom etmoqda. Sahifani qayta yuklab ko'ring.", true);
+        route(false);
+      }
+    }, ms);
+  }
+
   function subscribe(name, target){
-    col(name).onSnapshot(function(snap){
-      state[name] = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
-      state.ready[name] = true;
-      route(false);
-    }, function(err){
-      console.error(name, err);
-      if(err.code !== "unavailable") toast("Ma'lumot yuklashda xatolik: "+name, true);
-    });
+    var timer = watchdog(name, 15000);
+    var retried = false;
+    function attach(){
+      col(name).onSnapshot(function(snap){
+        clearTimeout(timer);
+        state[name] = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+        state.ready[name] = true;
+        route(false);
+      }, function(err){
+        console.error(name, err);
+        if(err.code === "unavailable" && !retried){
+          retried = true;
+          setTimeout(attach, 1200);
+          return;
+        }
+        clearTimeout(timer);
+        if(!state.ready[name]){
+          state[name] = state[name] || [];
+          state.ready[name] = true;
+        }
+        toast("Ma'lumot yuklashda xatolik: "+name, true);
+        route(false);
+      });
+    }
+    attach();
   }
 
   function subscribeSettings(){
-    db.doc("settings/main").onSnapshot(function(snap){
-      if(snap.exists){
-        state.settings = Object.assign({}, state.settings, snap.data());
-      }
-      state.ready.settings = true;
-      route(false);
-    }, function(err){ console.error("settings", err); });
+    var timer = watchdog("settings", 15000);
+    var retried = false;
+    function attach(){
+      db.doc("settings/main").onSnapshot(function(snap){
+        clearTimeout(timer);
+        if(snap.exists){
+          state.settings = Object.assign({}, state.settings, snap.data());
+        }
+        state.ready.settings = true;
+        route(false);
+      }, function(err){
+        console.error("settings", err);
+        if(err.code === "unavailable" && !retried){
+          retried = true;
+          setTimeout(attach, 1200);
+          return;
+        }
+        clearTimeout(timer);
+        state.ready.settings = true;
+        route(false);
+      });
+    }
+    attach();
   }
 
   /* ============ RENDER: SHELL ============ */
