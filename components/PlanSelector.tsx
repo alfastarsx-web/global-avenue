@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import SafeImage from './SafeImage';
 import { useMemo, useState } from 'react';
 
 import type { Locale } from '@/lib/i18n/config';
@@ -102,7 +102,7 @@ export default function PlanSelector({
             {active ? (
               <>
                 <div className="plans__drawing">
-                  <Image
+                  <SafeImage
                     src={active.image}
                     alt={`${project.name} — ${roomLabel(active.rooms)}, ${active.area} ${d.common.sqm}`}
                     width={520}

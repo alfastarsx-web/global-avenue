@@ -5,8 +5,10 @@ import LeadForm from '@/components/LeadForm';
 import { Award, Check, MapPin, Users } from '@/components/Icons';
 import { getDictionary } from '@/lib/i18n';
 import { isLocale, type Locale } from '@/lib/i18n/config';
-import { vacancies } from '@/lib/data/content';
+import { getVacancies } from '@/lib/content/vacancies';
 import { site } from '@/lib/data/site';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
@@ -30,6 +32,7 @@ export default async function CareersPage({ params }: { params: Promise<{ lang: 
   const { lang } = await params;
   const locale: Locale = isLocale(lang) ? lang : 'uz';
   const d = getDictionary(locale);
+  const vacancies = await getVacancies();
 
   return (
     <>

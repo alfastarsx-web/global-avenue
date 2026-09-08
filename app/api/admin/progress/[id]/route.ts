@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hasValidSession, unauthorized } from '@/lib/adminAuth';
-import { serializePost } from '@/lib/adminSerialize';
+import { serializeProgress } from '@/lib/adminSerialize';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,17 +15,10 @@ function orNull(v: unknown): string | null | undefined {
   const s = String(v ?? '').trim();
   return s || null;
 }
-function int(v: unknown): number | null | undefined {
+function int(v: unknown): number | undefined {
   if (v === undefined) return undefined;
-  if (v === '' || v === null) return null;
   const n = Number(v);
-  return Number.isFinite(n) ? Math.round(n) : null;
-}
-function paragraphs(v: unknown): string | undefined {
-  if (v === undefined) return undefined;
-  if (Array.isArray(v)) return JSON.stringify(v.map((x) => String(x)));
-  if (typeof v === 'string' && v.trim()) return JSON.stringify([v.trim()]);
-  return '[]';
+  return Number.isFinite(n) ? Math.round(n) : undefined;
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -33,30 +26,26 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 
-  const row = await prisma.post.update({
+  const row = await prisma.progressUpdate.update({
     where: { id },
     data: {
-      slug: str(body.slug),
-      category: str(body.category),
+      projectId: str(body.project_id),
+      projectName: str(body.project_name),
+      date: body.date ? new Date(body.date) : undefined,
+      image: orNull(body.image),
       titleUz: orNull(body.title_uz),
       titleRu: orNull(body.title_ru),
-      excerptUz: orNull(body.excerpt_uz),
-      excerptRu: orNull(body.excerpt_ru),
-      bodyUz: paragraphs(body.body_uz),
-      bodyRu: paragraphs(body.body_ru),
-      author: orNull(body.author),
-      status: str(body.status),
-      coverImage: orNull(body.cover_image),
-      readMinutes: int(body.read_minutes),
-      date: body.date ? new Date(body.date) : undefined,
+      textUz: orNull(body.text_uz),
+      textRu: orNull(body.text_ru),
+      percent: int(body.percent),
     },
   });
-  return NextResponse.json(serializePost(row));
+  return NextResponse.json(serializeProgress(row));
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!hasValidSession(req)) return unauthorized();
   const { id } = await params;
-  await prisma.post.delete({ where: { id } });
+  await prisma.progressUpdate.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

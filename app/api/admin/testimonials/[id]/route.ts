@@ -20,6 +20,15 @@ function num(v: unknown): number | undefined {
   const n = Number(v);
   return Number.isFinite(n) ? n : undefined;
 }
+function int(v: unknown): number | undefined {
+  if (v === undefined) return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.round(n) : undefined;
+}
+function bool(v: unknown): boolean | undefined {
+  if (v === undefined) return undefined;
+  return v === true || v === 'true';
+}
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!hasValidSession(req)) return unauthorized();
@@ -32,11 +41,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       clientName: str(body.client_name),
       projectId: orNull(body.project_id),
       projectName: str(body.project_name),
+      roleUz: orNull(body.role_uz),
+      roleRu: orNull(body.role_ru),
       rating: num(body.rating),
       source: str(body.source),
       youtubeUrl: orNull(body.youtube_url),
-      text: str(body.text),
+      hasVideo: bool(body.has_video),
+      textUz: orNull(body.text_uz ?? body.text),
+      textRu: orNull(body.text_ru),
       status: str(body.status),
+      order: int(body.order),
     },
   });
   return NextResponse.json(serializeTestimonial(row));

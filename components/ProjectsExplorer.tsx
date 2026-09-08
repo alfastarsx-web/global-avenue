@@ -5,12 +5,22 @@ import { useMemo, useState } from 'react';
 import ProjectCard from './ProjectCard';
 import type { Locale } from '@/lib/i18n/config';
 import type { Dictionary } from '@/lib/i18n';
-import { districts, minPrice, projects, type ProjectStatus } from '@/lib/data/projects';
+import type { Project, ProjectStatus } from '@/lib/data/projects';
+import { minPrice, computeDistricts } from '@/lib/content/projects';
 import { formatShortSum } from '@/lib/data/site';
 
 const statusOrder: ProjectStatus[] = ['building', 'selling', 'done', 'soon'];
 
-export default function ProjectsExplorer({ locale, d }: { locale: Locale; d: Dictionary }) {
+export default function ProjectsExplorer({
+  locale,
+  d,
+  projects,
+}: {
+  locale: Locale;
+  d: Dictionary;
+  projects: Project[];
+}) {
+  const districts = computeDistricts(projects);
   const [status, setStatus] = useState<ProjectStatus | 'all'>('all');
   const [rooms, setRooms] = useState<number | 'all'>('all');
   const [district, setDistrict] = useState<string>('all');
@@ -19,7 +29,7 @@ export default function ProjectsExplorer({ locale, d }: { locale: Locale; d: Dic
   const priceBounds = useMemo(() => {
     const values = projects.map((p) => p.pricePerSqm);
     return { min: Math.min(...values), max: Math.max(...values) };
-  }, []);
+  }, [projects]);
 
   const activeMax = maxPrice || priceBounds.max;
 
@@ -32,7 +42,7 @@ export default function ProjectsExplorer({ locale, d }: { locale: Locale; d: Dic
         if (p.pricePerSqm > activeMax) return false;
         return true;
       }),
-    [status, rooms, district, activeMax],
+    [projects, status, rooms, district, activeMax],
   );
 
   const dirty = status !== 'all' || rooms !== 'all' || district !== 'all' || maxPrice !== 0;

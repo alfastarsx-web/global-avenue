@@ -31,12 +31,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'file_too_large' }, { status: 400 });
   }
 
-  const dir = path.join(process.cwd(), 'public', 'uploads');
+  // NB: files must NOT go into public/uploads — Next.js's production server
+  // snapshots the public/ directory at startup, so anything written there
+  // after boot 404s until the next restart. Serving them back through our
+  // own route (app/api/uploads/[filename]) always reads fresh from disk.
+  const dir = path.join(process.cwd(), 'data', 'uploads');
   await mkdir(dir, { recursive: true });
 
   const filename = randomUUID() + (EXT[file.type] || '.jpg');
   const bytes = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(dir, filename), bytes);
 
-  return NextResponse.json({ url: `/uploads/${filename}` }, { status: 201 });
+  return NextResponse.json({ url: `/api/uploads/${filename}` }, { status: 201 });
 }

@@ -750,6 +750,12 @@ table.data tr:last-child td {
 .ratio--1x1 {
   aspect-ratio: 1 / 1;
 }
+.img-placeholder {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-alt-2);
+}
+
 .ratio--21x9 {
   aspect-ratio: 21 / 9;
 }

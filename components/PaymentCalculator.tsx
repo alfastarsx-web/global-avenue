@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import type { Locale } from '@/lib/i18n/config';
 import type { Dictionary } from '@/lib/i18n';
 import { formatSum } from '@/lib/data/site';
-import { projects } from '@/lib/data/projects';
+import type { Project } from '@/lib/data/projects';
 
 type Mode = 'installment' | 'mortgage';
 
@@ -20,10 +20,12 @@ function monthlyPayment(principal: number, annualRate: number, months: number): 
 export default function PaymentCalculator({
   locale,
   d,
+  projects,
   compact = false,
 }: {
   locale: Locale;
   d: Dictionary;
+  projects: Project[];
   compact?: boolean;
 }) {
   const [mode, setMode] = useState<Mode>('installment');

@@ -9,13 +9,38 @@ datasource db {
 
 model Project {
   id          String   @id @default(cuid())
+  slug        String   @unique
   name        String
-  location    String?
-  status      String   @default("qurilmoqda")
-  delivery    String?
+  taglineUz   String?
+  taglineRu   String?
+  status      String   @default("building") // building | selling | done | soon
+  districtUz  String?
+  districtRu  String?
+  districtKey String?
+  addressUz   String?
+  addressRu   String?
+  pricePerSqm Float?
   priceFrom   Float?
   priceTo     Float?
-  description String?
+  handoverUz  String?
+  handoverRu  String?
+  handoverYear Int?
+  floors      Int?
+  apartments  Int?
+  blocks      Int?
+  roomOptions String   @default("[]") // JSON int[]
+  cover       String?
+  gallery     String   @default("[]") // JSON string[]
+  descriptionUz String?
+  descriptionRu String?
+  highlights    String @default("[]") // JSON {uz,ru}[]
+  infrastructure String @default("[]") // JSON {name:{uz,ru},distance:{uz,ru}}[]
+  schedule      String @default("[]") // JSON {label:{uz,ru},date:{uz,ru},done}[]
+  passport      String @default("[]") // JSON {label:{uz,ru},value:{uz,ru}}[]
+  geoLat        Float?
+  geoLng        Float?
+  featured      Boolean @default(false)
+  delivery      String? // legacy admin free-text delivery note
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -23,6 +48,7 @@ model Project {
   leads        Lead[]
   media        Media[]
   testimonials Testimonial[]
+  progress     ProgressUpdate[]
 }
 
 model Unit {
@@ -35,7 +61,8 @@ model Unit {
   rooms       Int?
   area        Float?
   price       Float?
-  status      String   @default("bosh")
+  status      String   @default("bosh") // bosh | band | sotilgan
+  image       String?  // planirovka rasm/svg yo'li
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -66,12 +93,19 @@ model Lead {
 
 model Post {
   id          String    @id @default(cuid())
-  title       String
-  excerpt     String?
-  body        String?
+  slug        String    @unique
+  category    String    @default("news") // news | guide | mortgage
+  titleUz     String?
+  titleRu     String?
+  excerptUz   String?
+  excerptRu   String?
+  bodyUz      String    @default("[]") // JSON string[] (paragraphs)
+  bodyRu      String    @default("[]")
   author      String?
   status      String    @default("draft")
   coverImage  String?
+  readMinutes Int?
+  date        DateTime?
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -93,19 +127,68 @@ model Media {
 }
 
 model Testimonial {
-  id         String   @id @default(cuid())
-  clientName String
-  projectId  String?
-  project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  id          String   @id @default(cuid())
+  clientName  String
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   projectName String?
-  rating     Int      @default(5)
-  source     String?
-  youtubeUrl String?
-  text       String?
-  status     String   @default("published")
-  createdAt  DateTime @default(now())
+  roleUz      String?
+  roleRu      String?
+  rating      Int      @default(5)
+  source      String?
+  youtubeUrl  String?
+  hasVideo    Boolean  @default(false)
+  textUz      String?
+  textRu      String?
+  status      String   @default("published")
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
 
   @@index([projectId])
+}
+
+model ProgressUpdate {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectName String?
+  date        DateTime
+  image       String?
+  titleUz     String?
+  titleRu     String?
+  textUz      String?
+  textRu      String?
+  percent     Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  name      String
+  roleUz    String?
+  roleRu    String?
+  initials  String?
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Vacancy {
+  id           String   @id @default(cuid())
+  titleUz      String?
+  titleRu      String?
+  locationUz   String?
+  locationRu   String?
+  typeUz       String?
+  typeRu       String?
+  requirements String   @default("[]") // JSON {uz,ru}[]
+  order        Int      @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Staff {

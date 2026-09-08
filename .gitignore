@@ -6,8 +6,8 @@ out
 data/leads.jsonl
 data/*.db
 data/*.db-journal
-public/uploads/*
-!public/uploads/.gitkeep
+data/uploads/*
+!data/uploads/.gitkeep
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store

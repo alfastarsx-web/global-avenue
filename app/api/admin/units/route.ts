@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       area: num(body.area),
       price: num(body.price),
       status: str(body.status) || 'bosh',
+      image: str(body.image) || null,
     },
   });
   return NextResponse.json(serializeUnit(row), { status: 201 });

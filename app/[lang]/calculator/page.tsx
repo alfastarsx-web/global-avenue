@@ -6,6 +6,9 @@ import LeadForm from '@/components/LeadForm';
 import { Building, Calendar, Check, Wallet } from '@/components/Icons';
 import { getDictionary } from '@/lib/i18n';
 import { isLocale, type Locale } from '@/lib/i18n/config';
+import { getProjects } from '@/lib/content/projects';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
@@ -29,6 +32,7 @@ export default async function CalculatorPage({ params }: { params: Promise<{ lan
   const { lang } = await params;
   const locale: Locale = isLocale(lang) ? lang : 'uz';
   const d = getDictionary(locale);
+  const projects = await getProjects();
 
   const payments = [
     { icon: Wallet, title: d.payment.cash, text: d.payment.cashText },
@@ -50,7 +54,7 @@ export default async function CalculatorPage({ params }: { params: Promise<{ lan
 
       <section className="section section--tight">
         <div className="container">
-          <PaymentCalculator locale={locale} d={d} />
+          <PaymentCalculator locale={locale} d={d} projects={projects} />
         </div>
       </section>
 

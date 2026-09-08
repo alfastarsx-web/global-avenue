@@ -5,8 +5,10 @@ import LeadForm from '@/components/LeadForm';
 import { Play, Star } from '@/components/Icons';
 import { getDictionary } from '@/lib/i18n';
 import { isLocale, type Locale } from '@/lib/i18n/config';
-import { averageRating, reviews } from '@/lib/data/content';
+import { getAverageRating, getReviews } from '@/lib/content/reviews';
 import { site } from '@/lib/data/site';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
@@ -30,6 +32,7 @@ export default async function ReviewsPage({ params }: { params: Promise<{ lang: 
   const { lang } = await params;
   const locale: Locale = isLocale(lang) ? lang : 'uz';
   const d = getDictionary(locale);
+  const [reviews, averageRating] = await Promise.all([getReviews(), getAverageRating()]);
 
   const videoReviews = reviews.filter((r) => r.hasVideo);
 

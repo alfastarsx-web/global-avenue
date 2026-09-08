@@ -10,7 +10,8 @@
     "check": "tsc --noEmit",
     "build:static": "bash scripts/build-static.sh",
     "postinstall": "prisma generate",
-    "db:migrate": "prisma migrate deploy"
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
@@ -24,6 +25,7 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "prisma": "6.19.3",
+    "tsx": "^4.23.13",
     "typescript": "^5.7.2"
   }
 }

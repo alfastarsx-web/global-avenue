@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 import { locales } from '@/lib/i18n/config';
 import { site } from '@/lib/data/site';
-import { projects } from '@/lib/data/projects';
-import { posts } from '@/lib/data/content';
+import { getProjects } from '@/lib/content/projects';
+import { getPosts } from '@/lib/content/posts';
 
 const staticPaths = [
   '',
@@ -17,12 +17,14 @@ const staticPaths = [
   '/careers',
 ];
 
-// Statik eksport (GitHub Pages demo) uchun ham build vaqtida yaratilsin
-export const dynamic = 'force-static';
+// To'liq serverda har so'rovda yangilanadi (admin qo'shgan loyiha/maqola darhol
+// ko'rinishi uchun); statik eksport (GitHub Pages demo) uchun build vaqtida yaratiladi
+export const dynamic = 'force-dynamic';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const entries: MetadataRoute.Sitemap = [];
+  const [projects, posts] = await Promise.all([getProjects(), getPosts()]);
 
   const alt = (path: string) => ({
     languages: Object.fromEntries(

@@ -12,9 +12,19 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 TMP="$(mktemp -d)"
+
+# Bazaga bog'liq sahifalar to'liq serverda `force-dynamic` (admin o'zgarishi
+# darhol ko'rinishi uchun) — lekin `output: 'export'` bunday sahifalarni
+# qo'llab-quvvatlamaydi, shuning uchun build vaqtida vaqtincha `force-static`
+# ga almashtiramiz (bu rejimda ular baribir statik lib/data fayllaridan o'qiydi).
+DYNAMIC_PAGES=$(grep -rl "export const dynamic = 'force-dynamic';" "app/[lang]" app/sitemap.ts --include='*.ts' --include='*.tsx')
+
 restore() {
   [ -f "$TMP/middleware.ts" ] && mv "$TMP/middleware.ts" middleware.ts
   [ -d "$TMP/api" ] && mv "$TMP/api" app/api
+  for f in $DYNAMIC_PAGES; do
+    sed -i "s/export const dynamic = 'force-static';/export const dynamic = 'force-dynamic';/" "$f"
+  done
   rm -rf "$TMP"
 }
 trap restore EXIT
@@ -22,6 +32,11 @@ trap restore EXIT
 echo "→ middleware va /api statik build uchun vaqtincha chetga olinmoqda"
 [ -f middleware.ts ] && mv middleware.ts "$TMP/middleware.ts"
 [ -d app/api ] && mv app/api "$TMP/api"
+
+echo "→ bazaga bog'liq sahifalar vaqtincha force-static qilinmoqda"
+for f in $DYNAMIC_PAGES; do
+  sed -i "s/export const dynamic = 'force-dynamic';/export const dynamic = 'force-static';/" "$f"
+done
 
 echo "→ next build (STATIC_EXPORT=1)"
 STATIC_EXPORT=1 npx next build

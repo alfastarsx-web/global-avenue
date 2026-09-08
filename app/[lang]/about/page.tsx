@@ -6,7 +6,9 @@ import { Award, Check, Shield, Users } from '@/components/Icons';
 import { getDictionary } from '@/lib/i18n';
 import { isLocale, type Locale } from '@/lib/i18n/config';
 import { site } from '@/lib/data/site';
-import { team } from '@/lib/data/content';
+import { getTeam } from '@/lib/content/team';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
@@ -30,6 +32,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
   const { lang } = await params;
   const locale: Locale = isLocale(lang) ? lang : 'uz';
   const d = getDictionary(locale);
+  const team = await getTeam();
 
   return (
     <>

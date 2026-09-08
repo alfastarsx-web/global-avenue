@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import Link from 'next/link';
 
+import SafeImage from './SafeImage';
 import { ArrowRight, Building, Calendar, Layers } from './Icons';
 import type { Locale } from '@/lib/i18n/config';
 import type { Dictionary } from '@/lib/i18n';
@@ -24,7 +24,7 @@ export default function ProjectCard({
     <article className="card card--hover project-card">
       <Link href={`/${locale}/projects/${project.slug}`} className="project-card__link">
         <div className="ratio ratio--16x10 project-card__media">
-          <Image
+          <SafeImage
             src={project.cover}
             alt={project.name}
             fill
@@ -32,7 +32,7 @@ export default function ProjectCard({
             priority={priority}
           />
           <span className={`badge badge--dot badge--${project.status} project-card__status`}>
-            {d.status[project.status]}
+            {d.status[project.status] ?? project.status}
           </span>
         </div>
 

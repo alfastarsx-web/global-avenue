@@ -302,6 +302,17 @@
   .field textarea{resize:vertical;min-height:70px;font-family:inherit;}
   .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
+  /* ---------- Repeatable list fields (highlights, infra, schedule, passport...) ---------- */
+  .repeater{border:1px solid var(--border);border-radius:11px;padding:10px;background:var(--surface-2);}
+  .repeater-list{display:flex;flex-direction:column;gap:8px;}
+  .repeater-row{display:flex;gap:7px;align-items:center;background:var(--surface);border:1px solid var(--border-soft);border-radius:9px;padding:7px;}
+  .repeater-row input{flex:1;min-width:0;padding:7px 9px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);color:var(--ink);font-size:13px;}
+  .repeater-row .rp-check{flex:0 0 auto;display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);white-space:nowrap;}
+  .repeater-row .rp-check input{flex:0 0 auto;width:auto;padding:0;}
+  .repeater-empty{font-size:12px;color:var(--muted);padding:4px 2px;}
+  .repeater-add{margin-top:8px;}
+  .repeater-thumb{width:56px;height:42px;border-radius:6px;object-fit:cover;flex:0 0 auto;background:var(--border-soft);}
+
   /* ---------- Toast ---------- */
   .login-gate{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
   .login-card{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:34px 28px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;}
@@ -500,18 +511,18 @@
   var state = {
     view:"dashboard",
     role:"admin",
-    projects:[], units:[], leads:[], posts:[], staff:[], media:[], testimonials:[],
+    projects:[], units:[], leads:[], posts:[], staff:[], media:[], testimonials:[], progress:[], team:[], vacancies:[],
     settings:{company_name:"Global Avenue", phone:"", address:"", instagram:"", telegram:"", hours:""},
     filters:{ units:"barchasi", leads:"barchasi", posts:"barchasi", leadsQuery:"", media:"barchasi" },
     leadsView:"kanban",
-    ready:{projects:false, units:false, leads:false, posts:false, staff:false, settings:false, media:false, testimonials:false}
+    ready:{projects:false, units:false, leads:false, posts:false, staff:false, settings:false, media:false, testimonials:false, progress:false, team:false, vacancies:false}
   };
   try{ var savedLV = localStorage.getItem("ga_leads_view"); if(savedLV==="list"||savedLV==="kanban") state.leadsView = savedLV; }catch(e0){}
 
   var PERMS = {
-    admin:{ label:"To'liq huquq — barcha bo'limlarni ko'radi va tahrirlaydi.", projects:"rw", units:"rw", leads:"rw", posts:"rw", media:"rw", testimonials:"rw", staff:"rw", settings:"rw" },
-    sotuv:{ label:"Xonadonlar va lidlarni boshqaradi; loyihalar/kontent/xodimlarni faqat ko'radi.", projects:"r", units:"rw", leads:"rw", posts:"r", media:"r", testimonials:"r", staff:"r", settings:"r" },
-    kontent:{ label:"Yangiliklar, rasmlar va mijozlar fikrlarini boshqaradi; qolgan bo'limlarni faqat ko'radi.", projects:"r", units:"r", leads:"r", posts:"rw", media:"rw", testimonials:"rw", staff:"r", settings:"r" }
+    admin:{ label:"To'liq huquq — barcha bo'limlarni ko'radi va tahrirlaydi.", projects:"rw", units:"rw", leads:"rw", posts:"rw", media:"rw", testimonials:"rw", staff:"rw", settings:"rw", progress:"rw", team:"rw", vacancies:"rw" },
+    sotuv:{ label:"Xonadonlar va lidlarni boshqaradi; loyihalar/kontent/xodimlarni faqat ko'radi.", projects:"r", units:"rw", leads:"rw", posts:"r", media:"r", testimonials:"r", staff:"r", settings:"r", progress:"r", team:"r", vacancies:"r" },
+    kontent:{ label:"Yangiliklar, rasmlar va mijozlar fikrlarini boshqaradi; qolgan bo'limlarni faqat ko'radi.", projects:"r", units:"r", leads:"r", posts:"rw", media:"rw", testimonials:"rw", staff:"r", settings:"r", progress:"rw", team:"r", vacancies:"r" }
   };
   function can(section){
     var p = PERMS[state.role][section];
@@ -525,8 +536,11 @@
     {id:"leads", label:"Lidlar", icon:"leads", desc:"Saytdan tushgan arizalar va mijozlar bilan aloqa"},
     {id:"media", label:"Rasmlar", icon:"media", desc:"Sayt uchun rasmlar galereyasi — bannerlar, loyihalar va qurilish jarayoni fotolari"},
     {id:"posts", label:"Yangiliklar", icon:"posts", desc:"Blog va qurilish yangiliklari"},
+    {id:"progress", label:"Qurilish jarayoni", icon:"media", desc:"\"Sirsiz qurilish\" — haftalik hisobot lentasi"},
     {id:"testimonials", label:"Mijozlar fikri", icon:"testimonials", desc:"Saytda ko'rsatiladigan sharh va fikrlar"},
-    {id:"staff", label:"Xodimlar", icon:"staff", desc:"Jamoa a'zolari va kirish huquqlari"},
+    {id:"team", label:"Jamoa (sayt)", icon:"staff", desc:"\"Kompaniya haqida\" sahifasidagi jamoa a'zolari"},
+    {id:"vacancies", label:"Vakansiyalar", icon:"posts", desc:"\"Karyera\" sahifasidagi ochiq vakansiyalar"},
+    {id:"staff", label:"Xodimlar", icon:"staff", desc:"Admin panelga kirish huquqi bo'lgan xodimlar"},
     {id:"settings", label:"Sozlamalar", icon:"settings", desc:"Kompaniya ma'lumotlari va aloqa"}
   ];
 
@@ -592,7 +606,7 @@
 
   /* status -> pill config */
   var UNIT_STATUS = { bosh:{t:"Bo'sh",c:"info"}, band:{t:"Band qilingan",c:"warning"}, sotilgan:{t:"Sotilgan",c:"success"} };
-  var PROJECT_STATUS = { qurilmoqda:{t:"Qurilmoqda",c:"info"}, topshirilgan:{t:"Topshirilgan",c:"success"} };
+  var PROJECT_STATUS = { building:{t:"Qurilmoqda",c:"info"}, selling:{t:"Sotuvda",c:"success"}, done:{t:"Topshirilgan",c:"success"}, soon:{t:"Tez orada",c:"muted"} };
   var LEAD_STATUS = { yangi:{t:"Yangi",c:"info"}, aloqada:{t:"Aloqada",c:"warning"}, yopildi:{t:"Yopildi (muvaffaqiyatli)",c:"success"}, bekor:{t:"Bekor qilindi",c:"muted"} };
   var POST_STATUS = { draft:{t:"Qoralama",c:"muted"}, published:{t:"Chop etilgan",c:"success"} };
   var MEDIA_CATEGORY = { banner:"Bosh sahifa banneri", gallery:"Loyiha galereyasi", progress:"Qurilish jarayoni", other:"Boshqa" };
@@ -750,6 +764,9 @@
     else if(state.view==="posts") renderPosts();
     else if(state.view==="media") renderMedia();
     else if(state.view==="testimonials") renderTestimonials();
+    else if(state.view==="progress") renderProgress();
+    else if(state.view==="team") renderTeam();
+    else if(state.view==="vacancies") renderVacancies();
     else if(state.view==="staff") renderStaff();
     else if(state.view==="settings") renderSettings();
   }
@@ -776,7 +793,7 @@
     var free = totalUnits - sold - held;
     var newLeads = state.leads.filter(function(l){return l.status==="yangi";}).length;
     var revenue = state.units.filter(function(u){return u.status==="sotilgan";}).reduce(function(s,u){return s+(Number(u.price)||0);},0);
-    var activeProjects = state.projects.filter(function(p){return p.status==="qurilmoqda";}).length;
+    var activeProjects = state.projects.filter(function(p){return p.status==="building";}).length;
 
     var kpis = [
       {lbl:"Faol loyihalar", val: activeProjects + " / " + state.projects.length, foot: state.projects.length + " ta loyiha ro'yxatda"},
@@ -818,7 +835,7 @@
       var pct = tot? Math.round(sld/tot*100) : 0;
       var color = PROJECT_COLORS[idx % PROJECT_COLORS.length];
       return '<div class="proj-row"><div class="proj-badge" style="background:'+color+'">'+esc((p.name||"?")[0])+'</div>'+
-        '<div class="proj-main"><div class="t1">'+esc(p.name)+'</div><div class="t2">'+esc(p.location||"")+'</div></div>'+
+        '<div class="proj-main"><div class="t1">'+esc(p.name)+'</div><div class="t2">'+esc(p.district_uz||p.address_uz||"")+'</div></div>'+
         '<div class="proj-bar"><div class="track"><div class="fill" style="width:'+pct+'%"></div></div><div class="pct">'+sld+'/'+tot+' sotilgan</div></div></div>';
     }).join("") || '<div class="empty-state"><div class="s">Loyihalar qo\'shilmagan</div></div>';
 
@@ -861,7 +878,7 @@
       return '<tr>'+
         '<td><div style="display:flex;align-items:center;gap:10px;">'+
           '<div class="proj-badge" style="background:'+color+';width:30px;height:30px;font-size:12px;">'+esc((p.name||"?")[0])+'</div>'+
-          '<div><div class="cell-main">'+esc(p.name)+'</div><div class="cell-sub">'+esc(p.location||"")+'</div></div>'+
+          '<div><div class="cell-main">'+esc(p.name)+'</div><div class="cell-sub">'+esc(p.district_uz||p.address_uz||"")+'</div></div>'+
         '</div></td>'+
         '<td>'+pill(PROJECT_STATUS, p.status)+'</td>'+
         '<td class="num">'+sld+' / '+tot+'</td>'+
@@ -1204,7 +1221,7 @@
           : '<div style="width:44px;height:44px;border-radius:8px;background:var(--surface-2);color:var(--muted-2);display:flex;align-items:center;justify-content:center;flex:0 0 auto;">'+ICON.media+'</div>';
         return '<tr>'+
           '<td><div style="display:flex;align-items:center;gap:10px;">'+thumb+
-            '<div><div class="cell-main">'+esc(p.title)+'</div><div class="cell-sub">'+esc(p.excerpt||"")+'</div></div>'+
+            '<div><div class="cell-main">'+esc(p.title_uz)+'</div><div class="cell-sub">'+esc(p.excerpt_uz||"")+'</div></div>'+
           '</div></td>'+
           '<td>'+esc(p.author||"—")+'</td>'+
           '<td>'+pill(POST_STATUS,p.status)+'</td>'+
@@ -1396,7 +1413,7 @@
       var videoLink = t.youtube_url ? '<a href="'+esc(t.youtube_url)+'" target="_blank" rel="noopener" class="btn btn-sm" style="gap:6px;">'+ICON.play+' YouTube\'da ko\'rish</a>' : "";
       return '<div class="tm-card">'+
         '<div class="tm-top">'+stars(t.rating)+pill(TESTIMONIAL_STATUS, t.status||"hidden")+'</div>'+
-        (t.text ? '<div class="tm-text">"'+esc(t.text)+'"</div>' : '<div class="tm-text ld-empty">Matnli izohsiz — faqat video-sharh</div>')+
+        (t.text_uz ? '<div class="tm-text">"'+esc(t.text_uz)+'"</div>' : '<div class="tm-text ld-empty">Matnli izohsiz — faqat video-sharh</div>')+
         (videoLink ? '<div>'+videoLink+'</div>' : "")+
         '<div class="tm-foot"><div><div class="tm-name">'+esc(t.client_name)+'</div><div class="tm-proj">'+esc(t.project_name||"—")+' · '+esc(t.source||"—")+'</div></div>'+actions+'</div>'+
       '</div>';
@@ -1409,19 +1426,25 @@
     var t = existing || {};
     openModal(existing?"Fikrni tahrirlash":"Yangi mijoz fikri",
       '<div class="field"><label>Mijoz ismi</label><input name="client_name" value="'+esc(t.client_name||"")+'" required></div>'+
-      '<div class="field"><label>Loyiha (ixtiyoriy)</label><select name="project_id"><option value="">—</option>'+projectOptions(t.project_id)+'</select></div>'+
+      '<div class="field-row"><div class="field"><label>Rol/loyiha yorlig\'i (uz)</label><input name="role_uz" value="'+esc(t.role_uz||"")+'" placeholder="IZMIR, 3 xonali"></div>'+
+      '<div class="field"><label>Rol/loyiha yorlig\'i (ru)</label><input name="role_ru" value="'+esc(t.role_ru||"")+'" placeholder="IZMIR, 3-комнатная"></div></div>'+
+      '<div class="field"><label>Loyiha (ixtiyoriy, filtrlash uchun)</label><select name="project_id"><option value="">—</option>'+projectOptions(t.project_id)+'</select></div>'+
       '<div class="field-row"><div class="field"><label>Baho</label><select name="rating">'+[5,4,3,2,1].map(function(n){return '<option value="'+n+'"'+((t.rating||5)===n?" selected":"")+'>'+n+' yulduz</option>';}).join("")+'</select></div>'+
       '<div class="field"><label>Manba</label><select name="source"><option'+(t.source==="Instagram"?" selected":"")+'>Instagram</option><option'+(t.source==="Sayt"?" selected":"")+'>Sayt</option><option'+(t.source==="Google"?" selected":"")+'>Google</option><option'+(t.source==="Og\'zaki"?" selected":"")+'>Og\'zaki</option></select></div></div>'+
+      '<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink-soft);margin-bottom:2px;"><input type="checkbox" name="has_video" '+(t.has_video?"checked":"")+' style="width:auto;"> Video-sharh sifatida belgilash</label>'+
       '<div class="field"><label>YouTube video havolasi (ixtiyoriy)</label><input name="youtube_url" value="'+esc(t.youtube_url||"")+'" placeholder="https://youtu.be/..."></div>'+
-      '<div class="field"><label>Fikr matni / qisqa izoh</label><textarea name="text" style="min-height:80px;" placeholder="Video mavjud bo\'lsa ixtiyoriy">'+esc(t.text||"")+'</textarea></div>'+
+      '<div class="field-row"><div class="field"><label>Fikr matni (uz)</label><textarea name="text_uz" style="min-height:80px;" placeholder="Video mavjud bo\'lsa ixtiyoriy">'+esc(t.text_uz||"")+'</textarea></div>'+
+      '<div class="field"><label>Fikr matni (ru)</label><textarea name="text_ru" style="min-height:80px;">'+esc(t.text_ru||"")+'</textarea></div></div>'+
       '<div class="field"><label>Holati</label><select name="status">'+opt(TESTIMONIAL_STATUS,t.status||"hidden")+'</select></div>',
       function(data, close){
         var proj = state.projects.filter(function(p){return p.id===data.project_id;})[0];
         data.project_name = proj?proj.name:"";
         data.rating = Number(data.rating);
+        data.has_video = document.querySelector('input[name="has_video"]').checked;
         data.youtube_url = (data.youtube_url||"").trim();
-        data.text = (data.text||"").trim();
-        if(!data.youtube_url && !data.text){ toast("YouTube havolasi yoki fikr matnidan kamida bittasini kiriting", true); return; }
+        data.text_uz = (data.text_uz||"").trim();
+        data.text_ru = (data.text_ru||"").trim();
+        if(!data.youtube_url && !data.text_uz){ toast("YouTube havolasi yoki fikr matnidan kamida bittasini kiriting", true); return; }
         if(!existing) data.created_at = new Date().toISOString();
         var ref = existing ? db.doc("testimonials/"+existing.id) : db.collection("testimonials").doc();
         var op = existing ? ref.update(data) : ref.set(data);
@@ -1456,6 +1479,215 @@
     }).join("");
 
     c.innerHTML = lockedNote("staff") + '<div class="table-wrap"><table><thead><tr><th>Xodim</th><th>Lavozim</th><th>Holat</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+
+  /* ============ QURILISH JARAYONI (progress) ============ */
+  function renderProgress(){
+    var addBtn = can("progress") ? '<button class="btn btn-primary" id="btnAddProgress">'+ICON.plus+' Hisobot qo\'shish</button>' : "";
+    setTopbar(addBtn);
+    var c = document.getElementById("content");
+    if(!state.ready.progress){ c.innerHTML = emptyLoading(); return; }
+    if(!state.progress.length){ c.innerHTML = lockedNote("progress") + emptyBlock("Hali hisobot qo'shilmagan","Har haftalik qurilish fotolarini shu yerdan qo'shing — \"Qurilish jarayoni\" sahifasida va bosh sahifada ko'rinadi."); return; }
+
+    var list = state.progress.slice().sort(function(a,b){ return (b.date||"").localeCompare(a.date||""); });
+    var rows = list.map(function(u){
+      var actions = can("progress") ? (
+        '<button class="btn icon-btn btn-ghost" data-edit-progress="'+u.id+'" title="Tahrirlash">'+ICON.edit+'</button>'+
+        '<button class="btn icon-btn btn-danger-ghost" data-del-progress="'+u.id+'" title="O\'chirish">'+ICON.trash+'</button>'
+      ) : "";
+      return '<tr>'+
+        '<td><div style="display:flex;align-items:center;gap:10px;">'+
+          (u.image?'<img src="'+u.image+'" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex:0 0 auto;">':'<div class="mini-ava">'+ICON.media+'</div>')+
+          '<div><div class="cell-main">'+esc(u.title_uz||"")+'</div><div class="cell-sub">'+esc(u.project_name||"")+'</div></div></div></td>'+
+        '<td>'+fmtDate(u.date)+'</td>'+
+        '<td class="num">'+u.percent+'%</td>'+
+        '<td class="actions">'+actions+'</td>'+
+      '</tr>';
+    }).join("");
+
+    c.innerHTML = lockedNote("progress") + '<div class="table-wrap"><table><thead><tr><th>Hisobot</th><th>Sana</th><th>Foiz</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+
+  function progressModal(existing){
+    var pr = existing || {};
+    var overlay = document.getElementById("overlay");
+    var modal = document.getElementById("modal");
+    modal.className = "modal";
+    var pendingImage = null;
+
+    modal.innerHTML =
+      '<div class="modal-head"><h3>'+(existing?"Hisobotni tahrirlash":"Yangi hisobot")+'</h3><button class="btn icon-btn btn-ghost" id="modalClose">✕</button></div>'+
+      '<form id="progressForm"><div class="modal-body">'+
+        '<label class="upload-drop" id="uploadDrop">'+ICON.upload+
+          '<span class="t">'+(pr.image?"Boshqa rasm tanlash":"Rasm tanlash")+'</span><span class="s">Qurilish jarayonidan foto</span>'+
+          '<input type="file" accept="image/*" id="progressFile">'+
+        '</label>'+
+        '<div class="upload-preview-wrap" id="previewWrap" '+(pr.image?'':'style="display:none;"')+'>'+
+          '<img class="upload-preview" id="previewImg" src="'+(pr.image||"")+'">'+
+        '</div>'+
+        '<div class="field"><label>Loyiha</label><select name="project_id" required>'+projectOptions(pr.project_id)+'</select></div>'+
+        '<div class="field-row"><div class="field"><label>Sana</label><input type="date" name="date" value="'+esc(pr.date||new Date().toISOString().slice(0,10))+'"></div>'+
+        '<div class="field"><label>Bajarilgan foiz</label><input type="number" name="percent" min="0" max="100" value="'+esc(pr.percent!=null?pr.percent:0)+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Sarlavha (uz)</label><input name="title_uz" value="'+esc(pr.title_uz||"")+'" required></div>'+
+        '<div class="field"><label>Sarlavha (ru)</label><input name="title_ru" value="'+esc(pr.title_ru||"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Matn (uz)</label><textarea name="text_uz">'+esc(pr.text_uz||"")+'</textarea></div>'+
+        '<div class="field"><label>Matn (ru)</label><textarea name="text_ru">'+esc(pr.text_ru||"")+'</textarea></div></div>'+
+      '</div>'+
+      '<div class="modal-foot"><button type="button" class="btn" id="modalCancel">Bekor qilish</button><button type="submit" class="btn btn-primary">Saqlash</button></div></form>';
+
+    overlay.classList.add("show");
+    function close(){ overlay.classList.remove("show"); modal.innerHTML=""; modal.className="modal"; }
+    document.getElementById("modalClose").onclick = close;
+    document.getElementById("modalCancel").onclick = close;
+
+    document.getElementById("progressFile").addEventListener("change", function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      var dropLbl = document.getElementById("uploadDrop").querySelector(".t");
+      dropLbl.textContent = "Qayta ishlanmoqda…";
+      uploadImageFile(file).then(function(res){
+        pendingImage = res;
+        dropLbl.textContent = "Boshqa rasm tanlash";
+        document.getElementById("previewWrap").style.display = "block";
+        document.getElementById("previewImg").src = res.url;
+      }).catch(function(err){
+        dropLbl.textContent = "Rasm tanlash";
+        toast("Rasmni yuklab bo'lmadi: "+(err&&err.message||""), true);
+      });
+    });
+
+    document.getElementById("progressForm").onsubmit = function(e){
+      e.preventDefault();
+      var fd = new FormData(e.target);
+      var data = {};
+      fd.forEach(function(v,k){ data[k]=v; });
+      var proj = state.projects.filter(function(p){return p.id===data.project_id;})[0];
+      data.project_name = proj?proj.name:"";
+      data.percent = Number(data.percent)||0;
+      if(pendingImage) data.image = pendingImage.url;
+      var ref = existing ? db.doc("progress/"+existing.id) : db.collection("progress").doc();
+      var op = existing ? ref.update(data) : ref.set(data);
+      op.then(function(){ toast(existing?"Hisobot yangilandi":"Hisobot qo'shildi"); close(); })
+        .catch(function(e2){ toast("Xatolik: "+(e2&&e2.message||""), true); });
+    };
+  }
+
+  /* ============ JAMOA (team) ============ */
+  function renderTeam(){
+    var addBtn = can("team") ? '<button class="btn btn-primary" id="btnAddTeam">'+ICON.plus+' A\'zo qo\'shish</button>' : "";
+    setTopbar(addBtn);
+    var c = document.getElementById("content");
+    if(!state.ready.team){ c.innerHTML = emptyLoading(); return; }
+    if(!state.team.length){ c.innerHTML = lockedNote("team") + emptyBlock("Jamoa a'zolari qo'shilmagan","\"Kompaniya haqida\" sahifasida ko'rsatiladigan jamoa a'zolarini shu yerga kiriting."); return; }
+
+    var list = state.team.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); });
+    var rows = list.map(function(t){
+      var actions = can("team") ? (
+        '<button class="btn icon-btn btn-ghost" data-edit-team="'+t.id+'" title="Tahrirlash">'+ICON.edit+'</button>'+
+        '<button class="btn icon-btn btn-danger-ghost" data-del-team="'+t.id+'" title="O\'chirish">'+ICON.trash+'</button>'
+      ) : "";
+      return '<tr>'+
+        '<td><div style="display:flex;align-items:center;gap:10px;"><div class="mini-ava">'+esc(t.initials||initials(t.name))+'</div>'+
+        '<div class="cell-main">'+esc(t.name)+'</div></div></td>'+
+        '<td>'+esc(t.role_uz||"")+'</td>'+
+        '<td>'+(t.active===false? '<span class="pill pill-muted">Faol emas</span>' : '<span class="pill pill-success">Faol</span>')+'</td>'+
+        '<td class="actions">'+actions+'</td>'+
+      '</tr>';
+    }).join("");
+
+    c.innerHTML = lockedNote("team") + '<div class="table-wrap"><table><thead><tr><th>A\'zo</th><th>Lavozim</th><th>Holat</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+
+  function teamModal(existing){
+    var t = existing || {};
+    openModal(existing?"A'zoni tahrirlash":"Yangi jamoa a'zosi",
+      '<div class="field"><label>Ism familiya</label><input name="name" value="'+esc(t.name||"")+'" required></div>'+
+      '<div class="field-row"><div class="field"><label>Lavozim (uz)</label><input name="role_uz" value="'+esc(t.role_uz||"")+'"></div>'+
+      '<div class="field"><label>Lavozim (ru)</label><input name="role_ru" value="'+esc(t.role_ru||"")+'"></div></div>'+
+      '<div class="field-row"><div class="field"><label>Bosh harflar (ixtiyoriy)</label><input name="initials" value="'+esc(t.initials||"")+'" placeholder="Avtomatik"></div>'+
+      '<div class="field"><label>Tartib raqami</label><input name="order" type="number" value="'+esc(t.order!=null?t.order:0)+'"></div></div>'+
+      '<div class="field"><label>Holati</label><select name="active"><option value="true"'+(t.active!==false?" selected":"")+'>Faol</option><option value="false"'+(t.active===false?" selected":"")+'>Faol emas</option></select></div>',
+      function(data, close){
+        data.active = data.active === "true";
+        data.order = Number(data.order)||0;
+        var ref = existing ? db.doc("team/"+existing.id) : db.collection("team").doc();
+        var op = existing ? ref.update(data) : ref.set(data);
+        op.then(function(){ toast(existing?"A'zo yangilandi":"A'zo qo'shildi"); close(); })
+          .catch(function(e){ toast("Xatolik: "+(e&&e.message||""), true); });
+      }
+    );
+  }
+
+  /* ============ VAKANSIYALAR ============ */
+  function renderVacancies(){
+    var addBtn = can("vacancies") ? '<button class="btn btn-primary" id="btnAddVacancy">'+ICON.plus+' Vakansiya qo\'shish</button>' : "";
+    setTopbar(addBtn);
+    var c = document.getElementById("content");
+    if(!state.ready.vacancies){ c.innerHTML = emptyLoading(); return; }
+    if(!state.vacancies.length){ c.innerHTML = lockedNote("vacancies") + emptyBlock("Vakansiyalar qo'shilmagan","\"Karyera\" sahifasida ko'rsatiladigan ochiq lavozimlarni shu yerga kiriting."); return; }
+
+    var list = state.vacancies.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); });
+    var rows = list.map(function(v){
+      var actions = can("vacancies") ? (
+        '<button class="btn icon-btn btn-ghost" data-edit-vacancy="'+v.id+'" title="Tahrirlash">'+ICON.edit+'</button>'+
+        '<button class="btn icon-btn btn-danger-ghost" data-del-vacancy="'+v.id+'" title="O\'chirish">'+ICON.trash+'</button>'
+      ) : "";
+      return '<tr>'+
+        '<td><div class="cell-main">'+esc(v.title_uz||"")+'</div><div class="cell-sub">'+esc(v.location_uz||"")+'</div></td>'+
+        '<td>'+esc(v.type_uz||"")+'</td>'+
+        '<td>'+(v.active===false? '<span class="pill pill-muted">Yopilgan</span>' : '<span class="pill pill-success">Ochiq</span>')+'</td>'+
+        '<td class="actions">'+actions+'</td>'+
+      '</tr>';
+    }).join("");
+
+    c.innerHTML = lockedNote("vacancies") + '<div class="table-wrap"><table><thead><tr><th>Lavozim</th><th>Turi</th><th>Holat</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+
+  function vacancyModal(existing){
+    var v = existing || {};
+    var overlay = document.getElementById("overlay");
+    var modal = document.getElementById("modal");
+    modal.className = "modal";
+
+    modal.innerHTML =
+      '<div class="modal-head"><h3>'+(existing?"Vakansiyani tahrirlash":"Yangi vakansiya")+'</h3><button class="btn icon-btn btn-ghost" id="modalClose">✕</button></div>'+
+      '<form id="vacancyForm"><div class="modal-body">'+
+        '<div class="field-row"><div class="field"><label>Lavozim (uz)</label><input name="title_uz" value="'+esc(v.title_uz||"")+'" required></div>'+
+        '<div class="field"><label>Lavozim (ru)</label><input name="title_ru" value="'+esc(v.title_ru||"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Manzil (uz)</label><input name="location_uz" value="'+esc(v.location_uz||"")+'"></div>'+
+        '<div class="field"><label>Manzil (ru)</label><input name="location_ru" value="'+esc(v.location_ru||"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Bandlik turi (uz)</label><input name="type_uz" value="'+esc(v.type_uz||"")+'" placeholder="To\'liq stavka"></div>'+
+        '<div class="field"><label>Bandlik turi (ru)</label><input name="type_ru" value="'+esc(v.type_ru||"")+'" placeholder="Полная занятость"></div></div>'+
+        '<div class="field"><label>Talablar</label><div class="repeater" id="reqList"></div><button type="button" class="btn btn-sm repeater-add" id="reqAdd">'+ICON.plus+' Qo\'shish</button></div>'+
+        '<div class="field-row"><div class="field"><label>Tartib raqami</label><input name="order" type="number" value="'+esc(v.order!=null?v.order:0)+'"></div>'+
+        '<div class="field"><label>Holati</label><select name="active"><option value="true"'+(v.active!==false?" selected":"")+'>Ochiq</option><option value="false"'+(v.active===false?" selected":"")+'>Yopilgan</option></select></div></div>'+
+      '</div>'+
+      '<div class="modal-foot"><button type="button" class="btn" id="modalCancel">Bekor qilish</button><button type="submit" class="btn btn-primary">Saqlash</button></div></form>';
+
+    overlay.classList.add("show");
+    function close(){ overlay.classList.remove("show"); modal.innerHTML=""; modal.className="modal"; }
+    document.getElementById("modalClose").onclick = close;
+    document.getElementById("modalCancel").onclick = close;
+
+    var reqRepeater = makeRepeater(
+      (v.requirements||[]).map(function(r){return {uz:r.uz||"", ru:r.ru||""};}),
+      [{key:"uz",placeholder:"uz"},{key:"ru",placeholder:"ru"}]
+    );
+    reqRepeater.mount("reqList","reqAdd", function(){return {uz:"",ru:""};});
+
+    document.getElementById("vacancyForm").onsubmit = function(e){
+      e.preventDefault();
+      var fd = new FormData(e.target);
+      var data = {};
+      fd.forEach(function(v2,k){ data[k]=v2; });
+      data.active = data.active === "true";
+      data.order = Number(data.order)||0;
+      data.requirements = reqRepeater.getValue();
+      var ref = existing ? db.doc("vacancies/"+existing.id) : db.collection("vacancies").doc();
+      var op = existing ? ref.update(data) : ref.set(data);
+      op.then(function(){ toast(existing?"Vakansiya yangilandi":"Vakansiya qo'shildi"); close(); })
+        .catch(function(e2){ toast("Xatolik: "+(e2&&e2.message||""), true); });
+    };
   }
 
   /* ============ SETTINGS ============ */
@@ -1520,52 +1752,285 @@
     return state.projects.map(function(p){ return '<option value="'+p.id+'"'+(p.id===selected?" selected":"")+'>'+esc(p.name)+'</option>'; }).join("");
   }
 
+  /* ---- Generic repeatable-row field editor (highlights, infra, schedule, passport, requirements...) ---- */
+  function makeRepeater(initialItems, fields){
+    var items = (initialItems||[]).slice();
+    var containerEl, addBtnEl;
+
+    function rowHtml(item, i){
+      var cells = fields.map(function(f){
+        if(f.type==="checkbox"){
+          return '<label class="rp-check"><input type="checkbox" data-rp-key="'+f.key+'" '+(item[f.key]?"checked":"")+'> '+esc(f.placeholder)+'</label>';
+        }
+        return '<input data-rp-key="'+f.key+'" placeholder="'+esc(f.placeholder)+'" value="'+esc(item[f.key]||"")+'">';
+      }).join("");
+      return '<div class="repeater-row" data-idx="'+i+'">'+cells+'<button type="button" class="btn icon-btn btn-danger-ghost" data-rp-remove="'+i+'">'+ICON.trash+'</button></div>';
+    }
+
+    function render(){
+      containerEl.innerHTML = items.length ? items.map(rowHtml).join("") : '<div class="repeater-empty">Hali qo\'shilmagan</div>';
+    }
+
+    function sync(){
+      var rows = containerEl.querySelectorAll(".repeater-row");
+      items = Array.prototype.map.call(rows, function(row){
+        var obj = {};
+        fields.forEach(function(f){
+          var el = row.querySelector('[data-rp-key="'+f.key+'"]');
+          obj[f.key] = f.type==="checkbox" ? el.checked : el.value;
+        });
+        return obj;
+      });
+    }
+
+    return {
+      mount: function(containerId, addBtnId, emptyItem){
+        containerEl = document.getElementById(containerId);
+        addBtnEl = document.getElementById(addBtnId);
+        render();
+        containerEl.addEventListener("click", function(e){
+          var btn = e.target.closest("[data-rp-remove]");
+          if(!btn) return;
+          sync();
+          items.splice(Number(btn.getAttribute("data-rp-remove")),1);
+          render();
+        });
+        addBtnEl.addEventListener("click", function(){
+          sync();
+          items.push(emptyItem());
+          render();
+        });
+      },
+      getValue: function(){ sync(); return items; }
+    };
+  }
+
   /* ---- Project modal ---- */
+  var ROOM_OPTIONS = [0,1,2,3,4];
+  function roomOptLabel(n){ return n===0?"Studiya":(n+" xona"+(n===4?"+":"")); }
+
   function projectModal(existing){
     var p = existing || {};
-    openModal(existing?"Loyihani tahrirlash":"Yangi loyiha",
-      '<div class="field"><label>Nomi</label><input name="name" value="'+esc(p.name||"")+'" required></div>'+
-      '<div class="field"><label>Manzil</label><input name="location" value="'+esc(p.location||"")+'"></div>'+
-      '<div class="field-row"><div class="field"><label>Holati</label><select name="status">'+opt(PROJECT_STATUS,p.status||"qurilmoqda")+'</select></div>'+
-      '<div class="field"><label>Topshirish muddati</label><input name="delivery" value="'+esc(p.delivery||"")+'"></div></div>'+
-      '<div class="field-row"><div class="field"><label>Narx (dan), USD</label><input name="price_from" type="number" value="'+esc(p.price_from||"")+'"></div>'+
-      '<div class="field"><label>Narx (gacha), USD</label><input name="price_to" type="number" value="'+esc(p.price_to||"")+'"></div></div>'+
-      '<div class="field"><label>Tavsif</label><textarea name="description">'+esc(p.description||"")+'</textarea></div>',
-      function(data, close){
-        data.price_from = data.price_from?Number(data.price_from):null;
-        data.price_to = data.price_to?Number(data.price_to):null;
-        var ref = existing ? db.doc("projects/"+existing.id) : db.collection("projects").doc();
-        var op = existing ? ref.update(data) : ref.set(data);
-        op.then(function(){ toast(existing?"Loyiha yangilandi":"Loyiha qo'shildi"); close(); })
-          .catch(function(e){ toast("Xatolik: "+(e&&e.message||""), true); });
-      }
+    var overlay = document.getElementById("overlay");
+    var modal = document.getElementById("modal");
+    modal.className = "modal";
+    var pendingCover = null;
+    var currentRoomOptions = p.room_options || [];
+
+    modal.innerHTML =
+      '<div class="modal-head"><h3>'+(existing?"Loyihani tahrirlash":"Yangi loyiha")+'</h3><button class="btn icon-btn btn-ghost" id="modalClose">✕</button></div>'+
+      '<form id="projectForm"><div class="modal-body">'+
+        '<label class="upload-drop" id="uploadDrop">'+ICON.upload+
+          '<span class="t">'+(p.cover?"Boshqa muqova tanlash":"Muqova rasmini tanlash")+'</span><span class="s">Loyiha kartasi va sahifasida ko\'rinadi</span>'+
+          '<input type="file" accept="image/*" id="coverFile">'+
+        '</label>'+
+        '<div class="upload-preview-wrap" id="previewWrap" '+(p.cover?'':'style="display:none;"')+'>'+
+          '<img class="upload-preview" id="previewImg" src="'+(p.cover||"")+'">'+
+        '</div>'+
+        '<div class="field"><label>Galereya (loyiha sahifasidagi rasmlar)</label>'+
+          '<div class="repeater" id="galleryList"></div>'+
+          '<input type="file" accept="image/*" id="galleryFile" style="display:none;">'+
+          '<button type="button" class="btn btn-sm repeater-add" id="galleryAdd">'+ICON.plus+' Rasm qo\'shish</button>'+
+        '</div>'+
+        '<div class="field"><label>Nomi</label><input name="name" value="'+esc(p.name||"")+'" required></div>'+
+        '<div class="field-row"><div class="field"><label>Shior (uz)</label><input name="tagline_uz" value="'+esc(p.tagline_uz||"")+'"></div>'+
+        '<div class="field"><label>Shior (ru)</label><input name="tagline_ru" value="'+esc(p.tagline_ru||"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Tuman (uz)</label><input name="district_uz" value="'+esc(p.district_uz||"")+'"></div>'+
+        '<div class="field"><label>Tuman (ru)</label><input name="district_ru" value="'+esc(p.district_ru||"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Manzil (uz)</label><input name="address_uz" value="'+esc(p.address_uz||"")+'"></div>'+
+        '<div class="field"><label>Manzil (ru)</label><input name="address_ru" value="'+esc(p.address_ru||"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Geo — kenglik (lat)</label><input name="geo_lat" type="number" step="0.0001" value="'+esc(p.geo_lat!=null?p.geo_lat:"")+'"></div>'+
+        '<div class="field"><label>Geo — uzunlik (lng)</label><input name="geo_lng" type="number" step="0.0001" value="'+esc(p.geo_lng!=null?p.geo_lng:"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Holati</label><select name="status">'+opt(PROJECT_STATUS,p.status||"building")+'</select></div>'+
+        '<div class="field"><label>Topshirish yili</label><input name="handover_year" type="number" value="'+esc(p.handover_year!=null?p.handover_year:"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Topshirish (uz)</label><input name="handover_uz" value="'+esc(p.handover_uz||"")+'" placeholder="2027-yil IV chorak"></div>'+
+        '<div class="field"><label>Topshirish (ru)</label><input name="handover_ru" value="'+esc(p.handover_ru||"")+'" placeholder="IV квартал 2027 г."></div></div>'+
+        '<div class="field-row"><div class="field"><label>Qavatlar</label><input name="floors" type="number" value="'+esc(p.floors!=null?p.floors:"")+'"></div>'+
+        '<div class="field"><label>Xonadonlar soni</label><input name="apartments" type="number" value="'+esc(p.apartments!=null?p.apartments:"")+'"></div>'+
+        '<div class="field"><label>Bloklar</label><input name="blocks" type="number" value="'+esc(p.blocks!=null?p.blocks:"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Narx, m² uchun (USD)</label><input name="price_per_sqm" type="number" value="'+esc(p.price_per_sqm||"")+'"></div>'+
+        '<div class="field"><label>Narx (dan), USD</label><input name="price_from" type="number" value="'+esc(p.price_from||"")+'"></div>'+
+        '<div class="field"><label>Narx (gacha), USD</label><input name="price_to" type="number" value="'+esc(p.price_to||"")+'"></div></div>'+
+        '<div class="field"><label>Xona turlari</label><div class="chips" id="roomOptsChips">'+
+          ROOM_OPTIONS.map(function(n){ return '<button type="button" class="chip" data-room-opt="'+n+'" aria-pressed="'+(currentRoomOptions.indexOf(n)>-1)+'">'+roomOptLabel(n)+'</button>'; }).join("")+
+        '</div></div>'+
+        '<div class="field-row"><div class="field"><label>Tavsif (uz)</label><textarea name="description_uz">'+esc(p.description_uz||"")+'</textarea></div>'+
+        '<div class="field"><label>Tavsif (ru)</label><textarea name="description_ru">'+esc(p.description_ru||"")+'</textarea></div></div>'+
+        '<div class="field"><label>Afzalliklar (loyiha sahifasidagi belgilar ro\'yxati)</label><div class="repeater" id="highlightsList"></div><button type="button" class="btn btn-sm repeater-add" id="highlightsAdd">'+ICON.plus+' Qo\'shish</button></div>'+
+        '<div class="field"><label>Infratuzilma (yaqin atrofdagi obyektlar)</label><div class="repeater" id="infraList"></div><button type="button" class="btn btn-sm repeater-add" id="infraAdd">'+ICON.plus+' Qo\'shish</button></div>'+
+        '<div class="field"><label>Qurilish bosqichlari</label><div class="repeater" id="scheduleList"></div><button type="button" class="btn btn-sm repeater-add" id="scheduleAdd">'+ICON.plus+' Qo\'shish</button></div>'+
+        '<div class="field"><label>Texnik pasport</label><div class="repeater" id="passportList"></div><button type="button" class="btn btn-sm repeater-add" id="passportAdd">'+ICON.plus+' Qo\'shish</button></div>'+
+        '<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink-soft);"><input type="checkbox" name="featured" '+(p.featured?"checked":"")+' style="width:auto;"> Bosh sahifada ko\'rsatilsin (tanlangan loyiha)</label>'+
+      '</div>'+
+      '<div class="modal-foot"><button type="button" class="btn" id="modalCancel">Bekor qilish</button><button type="submit" class="btn btn-primary">Saqlash</button></div></form>';
+
+    overlay.classList.add("show");
+    function close(){ overlay.classList.remove("show"); modal.innerHTML=""; modal.className="modal"; }
+    document.getElementById("modalClose").onclick = close;
+    document.getElementById("modalCancel").onclick = close;
+
+    document.getElementById("roomOptsChips").addEventListener("click", function(e){
+      var btn = e.target.closest("[data-room-opt]");
+      if(!btn) return;
+      var n = Number(btn.getAttribute("data-room-opt"));
+      var i = currentRoomOptions.indexOf(n);
+      if(i>-1) currentRoomOptions.splice(i,1); else currentRoomOptions.push(n);
+      btn.setAttribute("aria-pressed", i===-1);
+    });
+
+    document.getElementById("coverFile").addEventListener("change", function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      var dropLbl = document.getElementById("uploadDrop").querySelector(".t");
+      dropLbl.textContent = "Qayta ishlanmoqda…";
+      uploadImageFile(file).then(function(res){
+        pendingCover = res;
+        dropLbl.textContent = "Boshqa muqova tanlash";
+        document.getElementById("previewWrap").style.display = "block";
+        document.getElementById("previewImg").src = res.url;
+      }).catch(function(err){
+        dropLbl.textContent = "Muqova rasmini tanlash";
+        toast("Rasmni yuklab bo'lmadi: "+(err&&err.message||""), true);
+      });
+    });
+
+    var galleryUrls = (p.gallery||[]).slice();
+    function renderGallery(){
+      var el = document.getElementById("galleryList");
+      el.innerHTML = galleryUrls.length ? galleryUrls.map(function(url,i){
+        return '<div class="repeater-row"><img class="repeater-thumb" src="'+esc(url)+'"><input value="'+esc(url)+'" readonly><button type="button" class="btn icon-btn btn-danger-ghost" data-gallery-remove="'+i+'">'+ICON.trash+'</button></div>';
+      }).join("") : '<div class="repeater-empty">Hali rasm qo\'shilmagan</div>';
+    }
+    renderGallery();
+    document.getElementById("galleryList").addEventListener("click", function(e){
+      var btn = e.target.closest("[data-gallery-remove]");
+      if(!btn) return;
+      galleryUrls.splice(Number(btn.getAttribute("data-gallery-remove")),1);
+      renderGallery();
+    });
+    document.getElementById("galleryAdd").addEventListener("click", function(){
+      document.getElementById("galleryFile").click();
+    });
+    document.getElementById("galleryFile").addEventListener("change", function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      uploadImageFile(file).then(function(res){
+        galleryUrls.push(res.url);
+        renderGallery();
+        e.target.value = "";
+      }).catch(function(err){ toast("Rasmni yuklab bo'lmadi: "+(err&&err.message||""), true); });
+    });
+
+    var highlightsRepeater = makeRepeater(
+      (p.highlights||[]).map(function(h){return {uz:h.uz||"", ru:h.ru||""};}),
+      [{key:"uz",placeholder:"uz"},{key:"ru",placeholder:"ru"}]
     );
+    highlightsRepeater.mount("highlightsList","highlightsAdd", function(){return {uz:"",ru:""};});
+
+    var infraRepeater = makeRepeater(
+      (p.infrastructure||[]).map(function(x){return {name_uz:(x.name&&x.name.uz)||"", name_ru:(x.name&&x.name.ru)||"", distance_uz:(x.distance&&x.distance.uz)||"", distance_ru:(x.distance&&x.distance.ru)||""};}),
+      [{key:"name_uz",placeholder:"Obyekt (uz)"},{key:"name_ru",placeholder:"Obyekt (ru)"},{key:"distance_uz",placeholder:"Masofa (uz)"},{key:"distance_ru",placeholder:"Masofa (ru)"}]
+    );
+    infraRepeater.mount("infraList","infraAdd", function(){return {name_uz:"",name_ru:"",distance_uz:"",distance_ru:""};});
+
+    var scheduleRepeater = makeRepeater(
+      (p.schedule||[]).map(function(x){return {label_uz:(x.label&&x.label.uz)||"", label_ru:(x.label&&x.label.ru)||"", date_uz:(x.date&&x.date.uz)||"", date_ru:(x.date&&x.date.ru)||"", done: !!x.done};}),
+      [{key:"label_uz",placeholder:"Bosqich (uz)"},{key:"label_ru",placeholder:"Bosqich (ru)"},{key:"date_uz",placeholder:"Sana (uz)"},{key:"date_ru",placeholder:"Sana (ru)"},{key:"done",placeholder:"Bajarildi",type:"checkbox"}]
+    );
+    scheduleRepeater.mount("scheduleList","scheduleAdd", function(){return {label_uz:"",label_ru:"",date_uz:"",date_ru:"",done:false};});
+
+    var passportRepeater = makeRepeater(
+      (p.passport||[]).map(function(x){return {label_uz:(x.label&&x.label.uz)||"", label_ru:(x.label&&x.label.ru)||"", value_uz:(x.value&&x.value.uz)||"", value_ru:(x.value&&x.value.ru)||""};}),
+      [{key:"label_uz",placeholder:"Parametr (uz)"},{key:"label_ru",placeholder:"Parametr (ru)"},{key:"value_uz",placeholder:"Qiymat (uz)"},{key:"value_ru",placeholder:"Qiymat (ru)"}]
+    );
+    passportRepeater.mount("passportList","passportAdd", function(){return {label_uz:"",label_ru:"",value_uz:"",value_ru:""};});
+
+    document.getElementById("projectForm").onsubmit = function(e){
+      e.preventDefault();
+      var fd = new FormData(e.target);
+      var data = {};
+      fd.forEach(function(v,k){ data[k]=v; });
+      data.featured = document.querySelector('input[name="featured"]').checked;
+      data.room_options = currentRoomOptions.slice();
+      if(pendingCover) data.cover = pendingCover.url;
+      data.gallery = galleryUrls.slice();
+      data.highlights = highlightsRepeater.getValue();
+      data.infrastructure = infraRepeater.getValue().map(function(x){return {name:{uz:x.name_uz,ru:x.name_ru}, distance:{uz:x.distance_uz,ru:x.distance_ru}};});
+      data.schedule = scheduleRepeater.getValue().map(function(x){return {label:{uz:x.label_uz,ru:x.label_ru}, date:{uz:x.date_uz,ru:x.date_ru}, done:!!x.done};});
+      data.passport = passportRepeater.getValue().map(function(x){return {label:{uz:x.label_uz,ru:x.label_ru}, value:{uz:x.value_uz,ru:x.value_ru}};});
+      var ref = existing ? db.doc("projects/"+existing.id) : db.collection("projects").doc();
+      var op = existing ? ref.update(data) : ref.set(data);
+      op.then(function(){ toast(existing?"Loyiha yangilandi":"Loyiha qo'shildi"); close(); })
+        .catch(function(e2){ toast("Xatolik: "+(e2&&e2.message||""), true); });
+    };
   }
 
   /* ---- Unit modal ---- */
   function unitModal(existing){
     var u = existing || {};
-    openModal(existing?"Xonadonni tahrirlash":"Yangi xonadon",
-      '<div class="field"><label>Loyiha</label><select name="project_id" required>'+projectOptions(u.project_id)+'</select></div>'+
-      '<div class="field-row"><div class="field"><label>Korpus/blok</label><input name="block" value="'+esc(u.block||"")+'"></div>'+
-      '<div class="field"><label>Qavat</label><input name="floor" type="number" value="'+esc(u.floor!=null?u.floor:"")+'"></div></div>'+
-      '<div class="field-row"><div class="field"><label>Xonalar soni (0 = studiya)</label><input name="rooms" type="number" value="'+esc(u.rooms!=null?u.rooms:"")+'"></div>'+
-      '<div class="field"><label>Maydon, m²</label><input name="area" type="number" step="0.1" value="'+esc(u.area||"")+'"></div></div>'+
-      '<div class="field-row"><div class="field"><label>Narx, USD</label><input name="price" type="number" value="'+esc(u.price||"")+'"></div>'+
-      '<div class="field"><label>Holati</label><select name="status">'+opt(UNIT_STATUS,u.status||"bosh")+'</select></div></div>',
-      function(data, close){
-        var proj = state.projects.filter(function(p){return p.id===data.project_id;})[0];
-        data.project_name = proj?proj.name:"";
-        data.floor = data.floor?Number(data.floor):null;
-        data.rooms = data.rooms!==""?Number(data.rooms):null;
-        data.area = data.area?Number(data.area):null;
-        data.price = data.price?Number(data.price):null;
-        var ref = existing ? db.doc("units/"+existing.id) : db.collection("units").doc();
-        var op = existing ? ref.update(data) : ref.set(data);
-        op.then(function(){ toast(existing?"Xonadon yangilandi":"Xonadon qo'shildi"); close(); })
-          .catch(function(e){ toast("Xatolik: "+(e&&e.message||""), true); });
-      }
-    );
+    var overlay = document.getElementById("overlay");
+    var modal = document.getElementById("modal");
+    modal.className = "modal";
+    var pendingImage = null;
+
+    modal.innerHTML =
+      '<div class="modal-head"><h3>'+(existing?"Xonadonni tahrirlash":"Yangi xonadon")+'</h3><button class="btn icon-btn btn-ghost" id="modalClose">✕</button></div>'+
+      '<form id="unitForm"><div class="modal-body">'+
+        '<label class="upload-drop" id="uploadDrop">'+ICON.upload+
+          '<span class="t">'+(u.image?"Boshqa planirovka tanlash":"Planirovka rasmi tanlash")+'</span><span class="s">Ixtiyoriy — xonadon tanlovchida ko\'rsatiladi</span>'+
+          '<input type="file" accept="image/*" id="unitFile">'+
+        '</label>'+
+        '<div class="upload-preview-wrap" id="previewWrap" '+(u.image?'':'style="display:none;"')+'>'+
+          '<img class="upload-preview" id="previewImg" src="'+(u.image||"")+'">'+
+        '</div>'+
+        '<div class="field"><label>Loyiha</label><select name="project_id" required>'+projectOptions(u.project_id)+'</select></div>'+
+        '<div class="field-row"><div class="field"><label>Korpus/blok</label><input name="block" value="'+esc(u.block||"")+'"></div>'+
+        '<div class="field"><label>Qavat</label><input name="floor" type="number" value="'+esc(u.floor!=null?u.floor:"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Xonalar soni (0 = studiya)</label><input name="rooms" type="number" value="'+esc(u.rooms!=null?u.rooms:"")+'"></div>'+
+        '<div class="field"><label>Maydon, m²</label><input name="area" type="number" step="0.1" value="'+esc(u.area||"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Narx, USD</label><input name="price" type="number" value="'+esc(u.price||"")+'"></div>'+
+        '<div class="field"><label>Holati</label><select name="status">'+opt(UNIT_STATUS,u.status||"bosh")+'</select></div></div>'+
+      '</div>'+
+      '<div class="modal-foot"><button type="button" class="btn" id="modalCancel">Bekor qilish</button><button type="submit" class="btn btn-primary">Saqlash</button></div></form>';
+
+    overlay.classList.add("show");
+    function close(){ overlay.classList.remove("show"); modal.innerHTML=""; modal.className="modal"; }
+    document.getElementById("modalClose").onclick = close;
+    document.getElementById("modalCancel").onclick = close;
+
+    document.getElementById("unitFile").addEventListener("change", function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      var dropLbl = document.getElementById("uploadDrop").querySelector(".t");
+      dropLbl.textContent = "Qayta ishlanmoqda…";
+      uploadImageFile(file).then(function(res){
+        pendingImage = res;
+        dropLbl.textContent = "Boshqa planirovka tanlash";
+        document.getElementById("previewWrap").style.display = "block";
+        document.getElementById("previewImg").src = res.url;
+      }).catch(function(err){
+        dropLbl.textContent = "Planirovka rasmi tanlash";
+        toast("Rasmni yuklab bo'lmadi: "+(err&&err.message||""), true);
+      });
+    });
+
+    document.getElementById("unitForm").onsubmit = function(e){
+      e.preventDefault();
+      var fd = new FormData(e.target);
+      var data = {};
+      fd.forEach(function(v,k){ data[k]=v; });
+      var proj = state.projects.filter(function(p){return p.id===data.project_id;})[0];
+      data.project_name = proj?proj.name:"";
+      data.floor = data.floor?Number(data.floor):null;
+      data.rooms = data.rooms!==""?Number(data.rooms):null;
+      data.area = data.area?Number(data.area):null;
+      data.price = data.price?Number(data.price):null;
+      if(pendingImage) data.image = pendingImage.url;
+      var ref = existing ? db.doc("units/"+existing.id) : db.collection("units").doc();
+      var op = existing ? ref.update(data) : ref.set(data);
+      op.then(function(){ toast(existing?"Xonadon yangilandi":"Xonadon qo'shildi"); close(); })
+        .catch(function(e){ toast("Xatolik: "+(e&&e.message||""), true); });
+    };
   }
 
   /* ---- Lead modal (create only — editing happens in the detail drawer) ---- */
@@ -1614,10 +2079,16 @@
         '<div class="upload-preview-wrap" id="previewWrap" '+(p.cover_image?'':'style="display:none;"')+'>'+
           '<img class="upload-preview" id="previewImg" src="'+(p.cover_image||"")+'">'+
         '</div>'+
-        '<div class="field"><label>Sarlavha</label><input name="title" value="'+esc(p.title||"")+'" required></div>'+
-        '<div class="field"><label>Qisqacha tavsif</label><input name="excerpt" value="'+esc(p.excerpt||"")+'"></div>'+
-        '<div class="field"><label>Matn</label><textarea name="body" style="min-height:110px;">'+esc(p.body||"")+'</textarea></div>'+
+        '<div class="field-row"><div class="field"><label>Sarlavha (uz)</label><input name="title_uz" value="'+esc(p.title_uz||"")+'" required></div>'+
+        '<div class="field"><label>Sarlavha (ru)</label><input name="title_ru" value="'+esc(p.title_ru||"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Qisqacha tavsif (uz)</label><input name="excerpt_uz" value="'+esc(p.excerpt_uz||"")+'"></div>'+
+        '<div class="field"><label>Qisqacha tavsif (ru)</label><input name="excerpt_ru" value="'+esc(p.excerpt_ru||"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Matn (uz) — bo\'sh qatordan ajratilgan abzatslar</label><textarea name="body_uz" style="min-height:110px;">'+esc((p.body_uz||[]).join("\n\n"))+'</textarea></div>'+
+        '<div class="field"><label>Matn (ru)</label><textarea name="body_ru" style="min-height:110px;">'+esc((p.body_ru||[]).join("\n\n"))+'</textarea></div></div>'+
         '<div class="field-row"><div class="field"><label>Muallif</label><input name="author" value="'+esc(p.author||"")+'"></div>'+
+        '<div class="field"><label>Kategoriya</label><select name="category"><option value="news"'+(p.category==="news"?" selected":"")+'>Yangiliklar</option><option value="guide"'+(p.category==="guide"?" selected":"")+'>Foydali maslahatlar</option><option value="mortgage"'+(p.category==="mortgage"?" selected":"")+'>Ipoteka va to\'lov</option></select></div></div>'+
+        '<div class="field-row"><div class="field"><label>Sana</label><input type="date" name="date" value="'+esc(p.date||new Date().toISOString().slice(0,10))+'"></div>'+
+        '<div class="field"><label>O\'qish vaqti (daqiqa)</label><input type="number" name="read_minutes" value="'+esc(p.read_minutes||3)+'"></div>'+
         '<div class="field"><label>Holati</label><select name="status">'+opt(POST_STATUS,p.status||"draft")+'</select></div></div>'+
       '</div>'+
       '<div class="modal-foot"><button type="button" class="btn" id="modalCancel">Bekor qilish</button><button type="submit" class="btn btn-primary">Saqlash</button></div></form>';
@@ -1648,6 +2119,8 @@
       var fd = new FormData(e.target);
       var data = {};
       fd.forEach(function(v,k){ data[k]=v; });
+      data.body_uz = String(data.body_uz||"").split(/\n\s*\n/).map(function(s){return s.trim();}).filter(Boolean);
+      data.body_ru = String(data.body_ru||"").split(/\n\s*\n/).map(function(s){return s.trim();}).filter(Boolean);
       if(pendingImage) data.cover_image = pendingImage.url;
       if(!existing || !p.published_at) data.published_at = new Date().toISOString();
       var ref = existing ? db.doc("posts/"+existing.id) : db.collection("posts").doc();
@@ -1700,6 +2173,9 @@
       if(e.target.closest("#btnAddMedia")){ if(can("media")) openMediaModal(null); return; }
       if(e.target.closest("#btnAddTestimonial")){ if(can("testimonials")) testimonialModal(null); return; }
       if(e.target.closest("#btnAddStaff")){ if(can("staff")) staffModal(null); return; }
+      if(e.target.closest("#btnAddProgress")){ if(can("progress")) progressModal(null); return; }
+      if(e.target.closest("#btnAddTeam")){ if(can("team")) teamModal(null); return; }
+      if(e.target.closest("#btnAddVacancy")){ if(can("vacancies")) vacancyModal(null); return; }
       if(e.target.closest("#btnExportLeads")){ exportLeadsCsv(); return; }
 
       var t;
@@ -1713,6 +2189,9 @@
       if((t = e.target.closest("[data-edit-media]")) && can("media")){ openMediaModal(state.media.filter(function(m){return m.id===t.getAttribute("data-edit-media");})[0]); return; }
       if((t = e.target.closest("[data-edit-testimonial]")) && can("testimonials")){ testimonialModal(state.testimonials.filter(function(x){return x.id===t.getAttribute("data-edit-testimonial");})[0]); return; }
       if((t = e.target.closest("[data-edit-staff]")) && can("staff")){ staffModal(state.staff.filter(function(s){return s.id===t.getAttribute("data-edit-staff");})[0]); return; }
+      if((t = e.target.closest("[data-edit-progress]")) && can("progress")){ progressModal(state.progress.filter(function(x){return x.id===t.getAttribute("data-edit-progress");})[0]); return; }
+      if((t = e.target.closest("[data-edit-team]")) && can("team")){ teamModal(state.team.filter(function(x){return x.id===t.getAttribute("data-edit-team");})[0]); return; }
+      if((t = e.target.closest("[data-edit-vacancy]")) && can("vacancies")){ vacancyModal(state.vacancies.filter(function(x){return x.id===t.getAttribute("data-edit-vacancy");})[0]); return; }
 
       if((t = e.target.closest("[data-del-project]")) && can("projects")){
         var pid=t.getAttribute("data-del-project");
@@ -1754,6 +2233,24 @@
         var sid=t.getAttribute("data-del-staff");
         confirmDelete("Xodimni ro'yxatdan o'chirmoqchimisiz?", function(){
           db.doc("staff/"+sid).delete().then(function(){toast("Xodim o'chirildi");}).catch(function(e){toast("Xatolik: "+(e&&e.message||""),true);});
+        }); return;
+      }
+      if((t = e.target.closest("[data-del-progress]")) && can("progress")){
+        var prid=t.getAttribute("data-del-progress");
+        confirmDelete("Hisobotni o'chirmoqchimisiz?", function(){
+          db.doc("progress/"+prid).delete().then(function(){toast("Hisobot o'chirildi");}).catch(function(e){toast("Xatolik: "+(e&&e.message||""),true);});
+        }); return;
+      }
+      if((t = e.target.closest("[data-del-team]")) && can("team")){
+        var tmid=t.getAttribute("data-del-team");
+        confirmDelete("A'zoni o'chirmoqchimisiz?", function(){
+          db.doc("team/"+tmid).delete().then(function(){toast("A'zo o'chirildi");}).catch(function(e){toast("Xatolik: "+(e&&e.message||""),true);});
+        }); return;
+      }
+      if((t = e.target.closest("[data-del-vacancy]")) && can("vacancies")){
+        var vid=t.getAttribute("data-del-vacancy");
+        confirmDelete("Vakansiyani o'chirmoqchimisiz?", function(){
+          db.doc("vacancies/"+vid).delete().then(function(){toast("Vakansiya o'chirildi");}).catch(function(e){toast("Xatolik: "+(e&&e.message||""),true);});
         }); return;
       }
     });
@@ -1861,6 +2358,9 @@
     subscribe("staff");
     subscribe("media");
     subscribe("testimonials");
+    subscribe("progress");
+    subscribe("team");
+    subscribe("vacancies");
     subscribeSettings();
   }
 

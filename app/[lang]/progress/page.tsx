@@ -6,6 +6,10 @@ import { Camera, Instagram } from '@/components/Icons';
 import { getDictionary } from '@/lib/i18n';
 import { isLocale, type Locale } from '@/lib/i18n/config';
 import { site } from '@/lib/data/site';
+import { getProgressUpdates } from '@/lib/content/progress';
+import { getProjects } from '@/lib/content/projects';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
@@ -29,6 +33,7 @@ export default async function ProgressPage({ params }: { params: Promise<{ lang:
   const { lang } = await params;
   const locale: Locale = isLocale(lang) ? lang : 'uz';
   const d = getDictionary(locale);
+  const [progressUpdates, projects] = await Promise.all([getProgressUpdates(), getProjects()]);
 
   return (
     <>
@@ -43,7 +48,7 @@ export default async function ProgressPage({ params }: { params: Promise<{ lang:
 
       <section className="section section--tight">
         <div className="container">
-          <ProgressFeed locale={locale} d={d} />
+          <ProgressFeed locale={locale} d={d} progressUpdates={progressUpdates} projects={projects} />
 
           <div className="note-box">
             <Camera width={20} height={20} />

@@ -20,9 +20,12 @@ import {
 import { getDictionary } from '@/lib/i18n';
 import { isLocale, locales, type Locale } from '@/lib/i18n/config';
 import { formatSum, priceFrom, site } from '@/lib/data/site';
-import { getProject, minPrice, projects } from '@/lib/data/projects';
+import { getProjectBySlug, getProjects, minPrice } from '@/lib/content/projects';
 
-export function generateStaticParams() {
+export const dynamic = 'force-dynamic';
+
+export async function generateStaticParams() {
+  const projects = await getProjects();
   return locales.flatMap((lang) => projects.map((p) => ({ lang, slug: p.slug })));
 }
 
@@ -33,7 +36,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { lang, slug } = await params;
   const locale: Locale = isLocale(lang) ? lang : 'uz';
-  const project = getProject(slug);
+  const project = await getProjectBySlug(slug);
   if (!project) return { title: 'Not found' };
 
   const title = `${project.name} — ${project.tagline[locale]}`;
@@ -63,11 +66,14 @@ export default async function ProjectPage({
   const { lang, slug } = await params;
   const locale: Locale = isLocale(lang) ? lang : 'uz';
   const d = getDictionary(locale);
-  const project = getProject(slug);
+  const project = await getProjectBySlug(slug);
   if (!project) notFound();
 
   const from = minPrice(project);
-  const others = projects.filter((p) => p.slug !== project.slug).slice(0, 3);
+  const allProjects = await getProjects();
+  const others = allProjects.filter((p) => p.slug !== project.slug).slice(0, 3);
+  const areas = project.plans.map((p) => p.area);
+  const areaRange = areas.length ? { min: Math.min(...areas), max: Math.max(...areas) } : null;
 
   const payments = [
     { icon: Wallet, title: d.payment.cash, text: d.payment.cashText },
@@ -100,7 +106,7 @@ export default async function ProjectPage({
       '@type': 'AggregateOffer',
       priceCurrency: 'UZS',
       lowPrice: from,
-      highPrice: Math.max(...project.plans.map((p) => p.price)),
+      highPrice: project.plans.length ? Math.max(...project.plans.map((p) => p.price)) : from,
       offerCount: project.plans.filter((p) => p.status === 'available').length,
       availability: 'https://schema.org/InStock',
     },
@@ -136,8 +142,7 @@ export default async function ProjectPage({
               <Ruler width={19} height={19} />
               <span className="keyfacts__label">{d.project.planArea}</span>
               <span className="keyfacts__value">
-                {Math.min(...project.plans.map((p) => p.area))}–
-                {Math.max(...project.plans.map((p) => p.area))} {d.common.sqm}
+                {areaRange ? `${areaRange.min}–${areaRange.max} ${d.common.sqm}` : '—'}
               </span>
             </li>
             <li>

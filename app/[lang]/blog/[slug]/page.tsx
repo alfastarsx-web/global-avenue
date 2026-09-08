@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
+import SafeImage from '@/components/SafeImage';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -9,9 +9,12 @@ import { ArrowRight } from '@/components/Icons';
 import { getDictionary } from '@/lib/i18n';
 import { isLocale, locales, type Locale } from '@/lib/i18n/config';
 import { formatDate, site } from '@/lib/data/site';
-import { getPost, postCategories, posts } from '@/lib/data/content';
+import { getPostBySlug, getPosts, postCategories } from '@/lib/content/posts';
 
-export function generateStaticParams() {
+export const dynamic = 'force-dynamic';
+
+export async function generateStaticParams() {
+  const posts = await getPosts();
   return locales.flatMap((lang) => posts.map((p) => ({ lang, slug: p.slug })));
 }
 
@@ -22,7 +25,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { lang, slug } = await params;
   const locale: Locale = isLocale(lang) ? lang : 'uz';
-  const post = getPost(slug);
+  const post = await getPostBySlug(slug);
   if (!post) return { title: 'Not found' };
 
   return {
@@ -50,10 +53,11 @@ export default async function PostPage({
   const { lang, slug } = await params;
   const locale: Locale = isLocale(lang) ? lang : 'uz';
   const d = getDictionary(locale);
-  const post = getPost(slug);
+  const post = await getPostBySlug(slug);
   if (!post) notFound();
 
-  const related = posts.filter((p) => p.slug !== post.slug).slice(0, 3);
+  const allPosts = await getPosts();
+  const related = allPosts.filter((p) => p.slug !== post.slug).slice(0, 3);
   const catLabel = postCategories.find((c) => c.key === post.category)?.label[locale] ?? '';
 
   const jsonLd = {
@@ -90,7 +94,7 @@ export default async function PostPage({
           </p>
 
           <div className="ratio ratio--21x9 post__cover">
-            <Image
+            <SafeImage
               src={post.cover}
               alt={post.title[locale]}
               fill
@@ -138,7 +142,7 @@ export default async function PostPage({
               <article key={p.slug} className="card card--hover post-card">
                 <Link href={`/${locale}/blog/${p.slug}`}>
                   <div className="ratio ratio--16x10">
-                    <Image
+                    <SafeImage
                       src={p.cover}
                       alt={p.title[locale]}
                       fill

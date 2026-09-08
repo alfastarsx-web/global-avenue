@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
+import SafeImage from '@/components/SafeImage';
 import Link from 'next/link';
 
 import PageHero from '@/components/PageHero';
@@ -7,7 +7,9 @@ import { ArrowRight } from '@/components/Icons';
 import { getDictionary } from '@/lib/i18n';
 import { isLocale, type Locale } from '@/lib/i18n/config';
 import { formatDate } from '@/lib/data/site';
-import { postCategories, posts } from '@/lib/data/content';
+import { postCategories, getPosts } from '@/lib/content/posts';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
@@ -31,6 +33,7 @@ export default async function BlogPage({ params }: { params: Promise<{ lang: str
   const { lang } = await params;
   const locale: Locale = isLocale(lang) ? lang : 'uz';
   const d = getDictionary(locale);
+  const posts = await getPosts();
 
   const sorted = [...posts].sort((a, b) => b.date.localeCompare(a.date));
   const [lead, ...rest] = sorted;
@@ -53,7 +56,7 @@ export default async function BlogPage({ params }: { params: Promise<{ lang: str
         <div className="container">
           <Link href={`/${locale}/blog/${lead.slug}`} className="post-lead card card--hover">
             <div className="ratio ratio--16x10 post-lead__media">
-              <Image
+              <SafeImage
                 src={lead.cover}
                 alt={lead.title[locale]}
                 fill
@@ -87,7 +90,7 @@ export default async function BlogPage({ params }: { params: Promise<{ lang: str
               <article key={p.slug} className="card card--hover post-card">
                 <Link href={`/${locale}/blog/${p.slug}`}>
                   <div className="ratio ratio--16x10">
-                    <Image
+                    <SafeImage
                       src={p.cover}
                       alt={p.title[locale]}
                       fill

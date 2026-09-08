@@ -1,15 +1,25 @@
 'use client';
 
-import Image from 'next/image';
+import SafeImage from '@/components/SafeImage';
 import { useMemo, useState } from 'react';
 
 import type { Locale } from '@/lib/i18n/config';
 import type { Dictionary } from '@/lib/i18n';
 import { formatDate } from '@/lib/data/site';
-import { progressUpdates } from '@/lib/data/content';
-import { projects } from '@/lib/data/projects';
+import type { ProgressUpdate } from '@/lib/data/content';
+import type { Project } from '@/lib/data/projects';
 
-export default function ProgressFeed({ locale, d }: { locale: Locale; d: Dictionary }) {
+export default function ProgressFeed({
+  locale,
+  d,
+  progressUpdates,
+  projects,
+}: {
+  locale: Locale;
+  d: Dictionary;
+  progressUpdates: ProgressUpdate[];
+  projects: Project[];
+}) {
   const [slug, setSlug] = useState<string>('all');
 
   const items = useMemo(
@@ -17,7 +27,7 @@ export default function ProgressFeed({ locale, d }: { locale: Locale; d: Diction
       progressUpdates
         .filter((u) => slug === 'all' || u.projectSlug === slug)
         .sort((a, b) => b.date.localeCompare(a.date)),
-    [slug],
+    [progressUpdates, slug],
   );
 
   return (
@@ -56,7 +66,7 @@ export default function ProgressFeed({ locale, d }: { locale: Locale; d: Diction
             return (
               <li key={u.id} className="progress-item">
                 <div className="progress-item__media ratio ratio--4x3">
-                  <Image
+                  <SafeImage
                     src={u.image}
                     alt={u.title[locale]}
                     fill

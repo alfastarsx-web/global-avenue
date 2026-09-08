@@ -1,6 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
+import SafeImage from '@/components/SafeImage';
+
 import ProjectCard from '@/components/ProjectCard';
 import ReviewsSlider from '@/components/ReviewsSlider';
 import PaymentCalculator from '@/components/PaymentCalculator';
@@ -21,15 +23,24 @@ import {
 import { getDictionary } from '@/lib/i18n';
 import { isLocale, type Locale } from '@/lib/i18n/config';
 import { formatDate, site, tel } from '@/lib/data/site';
-import { projects } from '@/lib/data/projects';
-import { progressUpdates } from '@/lib/data/content';
+import { getProjects } from '@/lib/content/projects';
+import { getProgressUpdates } from '@/lib/content/progress';
+import { getReviews } from '@/lib/content/reviews';
 
 const uspIcons = [Camera, Calendar, Shield, Wallet, Award, Globe];
+
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params;
   const locale: Locale = isLocale(lang) ? lang : 'uz';
   const d = getDictionary(locale);
+
+  const [projects, progressUpdates, reviews] = await Promise.all([
+    getProjects(),
+    getProgressUpdates(),
+    getReviews(),
+  ]);
 
   const featured = projects.filter((p) => p.featured).slice(0, 3);
   const feed = [...progressUpdates]
@@ -142,7 +153,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
                 <article key={item.id} className="feed">
                   <Link href={`/${locale}/progress`} className="feed__link">
                     <div className="ratio ratio--4x3 feed__media">
-                      <Image
+                      <SafeImage
                         src={item.image}
                         alt={item.title[locale]}
                         fill
@@ -180,7 +191,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
             </Link>
           </div>
 
-          <ReviewsSlider locale={locale} d={d} />
+          <ReviewsSlider locale={locale} d={d} reviews={reviews} />
         </div>
       </section>
 
@@ -192,7 +203,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
             <h2 className="sec-title">{d.home.calcTitle}</h2>
             <p className="sec-sub">{d.home.calcSub}</p>
           </div>
-          <PaymentCalculator locale={locale} d={d} />
+          <PaymentCalculator locale={locale} d={d} projects={projects} />
         </div>
       </section>
 

@@ -436,5 +436,6 @@ export const districts = Array.from(
 export function minPrice(p: Project): number {
   const available = p.plans.filter((x) => x.status !== 'sold');
   const pool = available.length ? available : p.plans;
+  if (!pool.length) return 0;
   return Math.min(...pool.map((x) => x.price));
 }

@@ -5,9 +5,17 @@ import { useRef } from 'react';
 import { ArrowRight, Play, Star } from './Icons';
 import type { Locale } from '@/lib/i18n/config';
 import type { Dictionary } from '@/lib/i18n';
-import { reviews } from '@/lib/data/content';
+import type { Review } from '@/lib/data/content';
 
-export default function ReviewsSlider({ locale, d }: { locale: Locale; d: Dictionary }) {
+export default function ReviewsSlider({
+  locale,
+  d,
+  reviews,
+}: {
+  locale: Locale;
+  d: Dictionary;
+  reviews: Review[];
+}) {
   const trackRef = useRef<HTMLUListElement>(null);
 
   function scrollBy(dir: number) {

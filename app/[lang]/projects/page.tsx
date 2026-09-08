@@ -5,8 +5,10 @@ import ProjectsExplorer from '@/components/ProjectsExplorer';
 import LeadForm from '@/components/LeadForm';
 import { getDictionary } from '@/lib/i18n';
 import { isLocale, type Locale } from '@/lib/i18n/config';
-import { minPrice, projects } from '@/lib/data/projects';
+import { minPrice, getProjects } from '@/lib/content/projects';
 import { site } from '@/lib/data/site';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
@@ -30,6 +32,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ lang:
   const { lang } = await params;
   const locale: Locale = isLocale(lang) ? lang : 'uz';
   const d = getDictionary(locale);
+  const projects = await getProjects();
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -56,7 +59,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ lang:
 
       <section className="section section--tight">
         <div className="container">
-          <ProjectsExplorer locale={locale} d={d} />
+          <ProjectsExplorer locale={locale} d={d} projects={projects} />
         </div>
       </section>
 
