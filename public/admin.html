@@ -1848,9 +1848,9 @@
         '<div class="field-row"><div class="field"><label>Qavatlar</label><input name="floors" type="number" value="'+esc(p.floors!=null?p.floors:"")+'"></div>'+
         '<div class="field"><label>Xonadonlar soni</label><input name="apartments" type="number" value="'+esc(p.apartments!=null?p.apartments:"")+'"></div>'+
         '<div class="field"><label>Bloklar</label><input name="blocks" type="number" value="'+esc(p.blocks!=null?p.blocks:"")+'"></div></div>'+
-        '<div class="field-row"><div class="field"><label>Narx, m² uchun (USD)</label><input name="price_per_sqm" type="number" value="'+esc(p.price_per_sqm||"")+'"></div>'+
-        '<div class="field"><label>Narx (dan), USD</label><input name="price_from" type="number" value="'+esc(p.price_from||"")+'"></div>'+
-        '<div class="field"><label>Narx (gacha), USD</label><input name="price_to" type="number" value="'+esc(p.price_to||"")+'"></div></div>'+
+        '<div class="field-row"><div class="field"><label>Narx, m² uchun (UZS)</label><input name="price_per_sqm" type="number" value="'+esc(p.price_per_sqm||"")+'"></div>'+
+        '<div class="field"><label>Narx (dan), UZS</label><input name="price_from" type="number" value="'+esc(p.price_from||"")+'"></div>'+
+        '<div class="field"><label>Narx (gacha), UZS</label><input name="price_to" type="number" value="'+esc(p.price_to||"")+'"></div></div>'+
         '<div class="field"><label>Xona turlari</label><div class="chips" id="roomOptsChips">'+
           ROOM_OPTIONS.map(function(n){ return '<button type="button" class="chip" data-room-opt="'+n+'" aria-pressed="'+(currentRoomOptions.indexOf(n)>-1)+'">'+roomOptLabel(n)+'</button>'; }).join("")+
         '</div></div>'+
