@@ -28,6 +28,10 @@ majburiy bog'liqlik yo'q.
 **Texnologiya:** Next.js 16 (React 19) · TypeScript · Prisma + SQLite ·
 toza CSS (tashqi UI-framework yo'q).
 
+> Arxivga ishlab chiqish jarayonidagi yordamchi fayllar (`.github/` —
+> namoyish nusxasini avtomatik joylashtirish sozlamasi) kiritilmagan:
+> ular faqat ishlab chiquvchining GitHub repozitoriysiga tegishli.
+
 **Litsenziya:** kod to'liq buyurtmachi ("Global Avenue" QK) mulki.
 
 ---
