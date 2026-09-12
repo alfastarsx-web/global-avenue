@@ -38,6 +38,10 @@ for f in $DYNAMIC_PAGES; do
   sed -i "s/export const dynamic = 'force-dynamic';/export const dynamic = 'force-static';/" "$f"
 done
 
+# `next dev` qoldirgan eski tip fayllari chetga olingan route'ga murojaat
+# qiladi va typecheck'ni yiqitadi — shuning uchun ularni tozalaymiz.
+rm -rf .next/dev/types .next/types
+
 echo "→ next build (STATIC_EXPORT=1)"
 STATIC_EXPORT=1 npx next build
 
