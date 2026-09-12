@@ -3,8 +3,10 @@
 Samarqand shahridagi "Global Avenue" qurilish-devoloper kompaniyasi uchun
 korporativ sayt. [Texnik topshiriq (TZ) v1.0](#tz-qamrovi) asosida qurilgan.
 
-**Stack:** Next.js 16 (App Router, RSC) · TypeScript · CSS (build-step'siz, framework'siz)
-· ikki til (uz/ru) · build step'da statik generatsiya
+**Stack:** Next.js 16 (App Router, RSC) · TypeScript · Prisma + SQLite ·
+CSS (framework'siz) · ikki til (uz/ru) · parol bilan himoyalangan admin panel
+
+📦 **Topshirish hujjatlari:** [`HANDOVER.md`](HANDOVER.md) · [`DEPLOY.md`](DEPLOY.md)
 
 ## 🔗 Demo
 
@@ -24,8 +26,10 @@ korporativ sayt. [Texnik topshiriq (TZ) v1.0](#tz-qamrovi) asosida qurilgan.
 
 ```bash
 npm install
-cp .env.example .env.local   # qiymatlarni to'ldiring
-npm run dev                  # http://localhost:3100
+cp .env.example .env      # qiymatlarni to'ldiring (admin paroli ham)
+npm run db:migrate        # baza jadvallarini yaratish
+npm run db:seed           # boshlang'ich kontent (faqat birinchi marta)
+npm run dev               # http://localhost:3100
 ```
 
 Ishlab chiqarish uchun:
@@ -34,25 +38,31 @@ Ishlab chiqarish uchun:
 npm run build && npm start
 ```
 
+> Fayl nomi aynan `.env` bo'lsin: Next.js `.env.local` ni ham o'qiydi,
+> lekin Prisma faqat `.env` ni o'qiydi.
+
 Tekshiruvlar:
 
 ```bash
 npm run check
 ```
 
-## Muhit o'zgaruvchilari (.env.local)
+## Muhit o'zgaruvchilari (.env)
 
 | O'zgaruvchi | Vazifasi | Majburiymi |
 |---|---|---|
 | `NEXT_PUBLIC_SITE_URL` | Canonical, sitemap, OG havolalari uchun asosiy manzil | Ha (prodda) |
+| `DATABASE_URL` | SQLite baza fayli (`file:../data/admin.db`) | Ha |
+| `ADMIN_PASSWORD_HASH` | Admin panel paroli (bcrypt hash, `$` → `\$`) | Ha |
+| `SESSION_SECRET` | Sessiya cookie'sini imzolash kaliti | Ha |
 | `TELEGRAM_BOT_TOKEN` | Yangi ariza kelganda sotuv bo'limiga xabar | Yo'q |
 | `TELEGRAM_CHAT_ID` | Xabar yuboriladigan chat/guruh | Yo'q |
 | `CRM_WEBHOOK_URL` | Bitrix24 / amoCRM inbound webhook | Yo'q |
 | `NEXT_PUBLIC_GTM_ID` | Google Tag Manager | Yo'q |
 | `NEXT_PUBLIC_YM_ID` | Yandex Metrika | Yo'q |
 
-Telegram va CRM sozlanmagan bo'lsa ham forma ishlaydi: har bir ariza
-`data/leads.jsonl` fayliga yozib boriladi, shuning uchun lid yo'qolmaydi.
+Telegram va CRM sozlanmagan bo'lsa ham forma ishlaydi: har bir ariza avval
+bazaga va `data/leads.jsonl` fayliga yoziladi, shuning uchun lid yo'qolmaydi.
 
 ---
 
@@ -80,20 +90,31 @@ lib/
   data/site.ts            # Kontaktlar, ijtimoiy tarmoqlar, formatlash
   data/projects.ts        # TJM'lar: narx, planirovka, bosqich, pasport
   data/content.ts         # Blog, hisobotlar, sharhlar, jamoa, vakansiya
+  content/*.ts            # Bazadan kontent o'qish (admin panel manbai)
+  prisma.ts, adminAuth.ts # Baza klienti va admin sessiyasi
+prisma/                   # Baza sxemasi, migratsiyalar, seed
+public/admin.html         # Admin panel (bitta sahifali ilova)
 public/img/               # Fotosuratlar (CREDITS.md ga qarang)
+public/logo/              # Brend logotipi
 scripts/                  # photos.txt (rasm manbalari), gen_plans.py
 ```
 
-### Kontentni yangilash (CMS'gacha)
+### Kontentni yangilash
 
-Hozircha kontent TypeScript fayllarida — CMS keyingi bosqichda ulanadi
-(TZ 11-bo'lim). Shu paytgacha:
+Kontentning katta qismi **bazada** va admin panel orqali boshqariladi:
+`/admin.html` (parol `.env` dagi `ADMIN_PASSWORD_HASH` ga mos keladi).
 
-- **Narx / xonadon holati** → `lib/data/projects.ts`
-- **Qurilish hisoboti** → `lib/data/content.ts` → `progressUpdates`
-- **Maqola** → `lib/data/content.ts` → `posts`
-- **Matnlar / tarjima** → `lib/i18n/uz.ts` va `lib/i18n/ru.ts`
+Admin paneldan: loyihalar, xonadonlar, qurilish hisobotlari, maqolalar,
+sharhlar, jamoa, vakansiyalar, arizalar, media.
+
+Kodda qoladigan qismlar:
+
+- **Sayt interfeysi matnlari / tarjima** → `lib/i18n/uz.ts` va `lib/i18n/ru.ts`
 - **Telefon, manzil, ijtimoiy tarmoq** → `lib/data/site.ts`
+- **Ranglar, shriftlar** → `app/globals.css` (`:root` bloki)
+
+`lib/data/` fayllari endi faqat ikki narsa uchun ishlatiladi: baza uchun
+boshlang'ich kontent (`prisma/seed.ts`) va statik eksport rejimi.
 
 `lib/i18n/ru.ts` `Dictionary` tipiga bog'langan — o'zbekchada yangi kalit
 qo'shsangiz, ruschada ham talab qilinadi (TypeScript xato beradi). Shu tufayli
@@ -109,17 +130,17 @@ tarjima tushib qolmaydi.
 | 6.1 Bosh sahifa (hero, statistika, USP, lenta, sharh, xarita, tez aloqa) | ✅ |
 | 6.2 TJM sahifasi (galereya, planirovka tanlovchi, narx, bosqich, pasport) | ✅ |
 | 6.2 360° virtual tur | ⏳ Joy ajratilgan, provayder ulanishi kerak |
-| 6.3 Ariza formasi → Telegram + CRM | ✅ (token/webhook qo'yilishi kerak) |
+| 6.3 Ariza formasi → baza + Telegram + CRM | ✅ (token/webhook qo'yilishi kerak) |
 | 6.3 Mijozga avtomatik SMS/Telegram tasdiq | ⏳ SMS provayder shartnomasi kerak |
 | 7. Dizayn: premium, mobile-first, responsiv | ✅ |
 | 8. Next.js, SSR/SSG, SSL, tezlik, SEO | ✅ (SSL — hostingda) |
-| 8. CMS / admin panel | ⏳ Keyingi bosqich (11-bo'lim) |
+| 8. CMS / admin panel | ✅ `/admin.html` — parol bilan |
 | 9. GA4 / Metrika / GTM / Pixel | ✅ GTM + Metrika ulangan (ID kerak) |
 | 9. Instagram lentasi | ⏳ Blok tayyor, rasmiy API tokeni kerak |
 | 9. Xarita | ⏳ Blok va koordinatalar tayyor, Yandex API kaliti kerak |
 | 10. Ikki til (uz/ru) | ✅ To'liq |
 | 10. Professional foto/video | ⚠️ Vaqtincha Unsplash — `public/img/CREDITS.md` |
-| 11. Boshqaruv paneli | ⏳ Keyingi bosqich |
+| 11. Boshqaruv paneli | ✅ Loyiha, xonadon, kontent, ariza, media |
 
 **Izoh:** saytdagi loyiha ma'lumotlari (narx, maydon, muddat, statistika,
 sharhlar, jamoa) — namoyish uchun. Ishga tushirishdan oldin kompaniyadan
@@ -149,9 +170,19 @@ kichik, PageSpeed yuqori.
 `immutable` emas: kontent menejeri faylni o'sha nom bilan almashtirsa,
 foydalanuvchilar bir soat ichida yangisini ko'radi.
 
-**Lid yo'qolmasligi.** `/api/lead` avval faylga yozadi, keyin Telegram va CRM'ga
-`Promise.allSettled` bilan yuboradi — tashqi xizmat ishlamay qolsa ham
-ariza saqlanadi. IP bo'yicha daqiqasiga 5 ta so'rov cheklovi bor (spam-bot).
+**Lid yo'qolmasligi.** `/api/lead` avval bazaga va `data/leads.jsonl` fayliga
+yozadi, keyin Telegram va CRM'ga `Promise.allSettled` bilan yuboradi — tashqi
+xizmat ishlamay qolsa ham ariza saqlanadi. IP bo'yicha daqiqasiga 5 ta so'rov
+cheklovi bor (spam-bot).
+
+**Nega SQLite?** Kontent hajmi kichik, bitta server yetarli va butun baza —
+bitta fayl (`data/admin.db`), ya'ni zaxira nusxa olish ham oddiy. Yuk ortsa,
+Prisma sxemasini Postgres'ga o'tkazish bir necha qatorlik o'zgarish.
+
+**Nega yuklangan rasmlar `public/` da emas?** Next.js ishlab chiqarish rejimida
+`public/` ni build vaqtida o'qiydi — keyin qo'shilgan fayllarni ko'rmaydi.
+Shuning uchun ular `data/uploads/` ga tushadi va `/api/uploads/...` route'i
+orqali beriladi.
 
 ## Deploy
 
@@ -165,16 +196,26 @@ NEXT_PUBLIC_DEMO_MODE=1 npm run build:static
 ```
 
 `out/` papkasi hosil bo'ladi. `scripts/build-static.sh` build vaqtida
-`middleware.ts` va `app/api` ni vaqtincha chetga oladi (Next.js statik
-eksportda ularni qo'llab-quvvatlamaydi) va oxirida joyiga qaytaradi.
+`middleware.ts` va `app/api` ni vaqtincha chetga oladi hamda bazaga bog'liq
+sahifalarni `force-static` ga o'tkazadi (Next.js statik eksportda bularni
+qo'llab-quvvatlamaydi), oxirida esa hammasini joyiga qaytaradi.
 
-### To'liq funksional (server)
+> Statik rejimda kontent bazadan emas, `lib/data/` fayllaridan o'qiladi va
+> admin panel ishlamaydi — bu faqat demo uchun.
 
-Sayt Node.js server talab qiladi (middleware + `/api/lead`), shuning uchun
-statik eksport emas:
+### To'liq funksional (server) — asosiy variant
+
+Sayt Node.js server talab qiladi (middleware, `/api/lead`, admin panel va baza):
 
 ```bash
-npm ci && npm run build && npm start   # 3100-port
+npm ci
+npm run db:migrate     # baza jadvallari
+npm run db:seed        # boshlang'ich kontent (faqat birinchi marta)
+npm run build
+npm start              # 3100-port
 ```
 
 Old tomonda nginx: SSL, gzip/brotli va `proxy_pass http://127.0.0.1:3100`.
+
+**Batafsil yo'riqnoma — [`DEPLOY.md`](DEPLOY.md)**: systemd/PM2 namunasi,
+nginx konfiguratsiyasi, admin paroli, Telegram va CRM sozlash, zaxira nusxa.

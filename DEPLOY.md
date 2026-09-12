@@ -1,38 +1,39 @@
 # Deploy qo'llanmasi
 
-Bu hujjat saytni ishga tushirish uchun yozilgan. Texnik mutaxassis uchun
-mo'ljallangan — buyruqlarni ketma-ket bajarish yetarli.
+Bu hujjat saytni noldan ishga tushirish uchun yozilgan. Texnik mutaxassis
+uchun mo'ljallangan — buyruqlarni ketma-ket bajarish yetarli.
 
 **Talab:** Node.js 20 yoki undan yuqori (22 tavsiya etiladi).
-
-Tekshirish:
 
 ```bash
 node -v
 ```
 
+Sayt Next.js'da yozilgan va **Node server talab qiladi**. Sabablari:
+
+- til yo'naltirish (`middleware`),
+- ariza qabul qilish (`/api/lead`),
+- **admin panel va ma'lumotlar bazasi** (Prisma + SQLite).
+
+Oddiy (shared) PHP hostingda to'liq ishlamaydi — pastdagi C variantga qarang.
+
 ---
 
 ## Qaysi variantni tanlash kerak
 
-| Variant | Kimga mos | Ariza formasi | Murakkablik |
+| Variant | Kimga mos | Admin panel | Ariza formasi |
 |---|---|---|---|
-| **A. VPS / Node hosting** | O'z serveri bor kompaniyalarga | ✅ To'liq ishlaydi | O'rtacha |
-| **B. Vercel** | Tez va bepul boshlash uchun | ✅ To'liq ishlaydi | Eng oson |
-| **C. Oddiy (shared) hosting** | Faqat cPanel/FTP bo'lsa | ⚠️ Cheklangan — quyida o'qing | Oson |
-
-> **Tavsiya:** A yoki B. Sayt Next.js'da yozilgan va til yo'naltirish
-> (`middleware`) hamda ariza qabul qilish (`/api/lead`) uchun Node server
-> talab qiladi. C variantda bu ikkisi ishlamaydi.
+| **A. VPS / Node hosting** | Tavsiya etiladi | ✅ | ✅ |
+| **B. Vercel** | Tez boshlash uchun | ⚠️ Baza tashqi bo'lishi kerak | ✅ |
+| **C. Statik (shared hosting)** | Faqat oxirgi chora | ❌ | ❌ |
 
 ---
 
 ## A. VPS / Node hosting (tavsiya etiladi)
 
-### 1. Fayllarni serverga joylashtirish
+### 1. Fayllarni joylashtirish
 
 ```bash
-# Arxivni serverga ko'chirib, ochamiz
 unzip global-avenue-v1.0.zip -d /var/www/
 cd /var/www/global-avenue
 ```
@@ -40,31 +41,69 @@ cd /var/www/global-avenue
 ### 2. Sozlamalar fayli
 
 ```bash
-cp .env.example .env.local
-nano .env.local
+cp .env.example .env
+nano .env
 ```
 
-Kamida `NEXT_PUBLIC_SITE_URL` ni to'ldiring:
+> ⚠️ **Fayl nomi aynan `.env` bo'lsin, `.env.local` emas.**
+> Next.js ikkalasini ham o'qiydi, lekin Prisma (baza vositasi) faqat `.env` ni
+> o'qiydi. Bitta `.env` faylida hammasini saqlash eng oddiy yo'l.
+
+To'ldirilishi shart bo'lgan qiymatlar:
 
 ```env
 NEXT_PUBLIC_SITE_URL=https://globalavenue.uz
+DATABASE_URL=file:../data/admin.db
+ADMIN_PASSWORD_HASH=...
+SESSION_SECRET=...
 ```
 
-Qolgan o'zgaruvchilar ixtiyoriy — pastdagi "Integratsiyalar" bo'limiga qarang.
-
-### 3. Build va ishga tushirish
+**Admin parolini yaratish** (`PAROL` o'rniga o'z parolingizni qo'ying):
 
 ```bash
-npm ci          # bog'liqliklarni o'rnatish
-npm run build   # loyihani yig'ish (1-2 daqiqa)
-npm start       # 3100-portda ishga tushadi
+npm ci   # avval bog'liqliklar o'rnatilgan bo'lishi kerak
+node -e "require('bcryptjs').hash(process.argv[1],10).then(h=>console.log(h))" 'PAROL'
 ```
 
-Tekshirish: `curl -I http://127.0.0.1:3100/uz` → `200 OK` bo'lishi kerak.
+> ⚠️ Chiqqan hash'dagi **har bir `$` belgisini `\$` bilan almashtiring**:
+> `$2b$10$abc...` → `\$2b\$10\$abc...`
+> Aks holda `.env` yuklovchisi ularni o'zgaruvchi deb "kengaytirib" yuboradi va
+> hash buziladi (parol hech qachon to'g'ri kelmaydi).
+
+**Sessiya kalitini yaratish:**
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Qolgan o'zgaruvchilar (Telegram, CRM, analitika) ixtiyoriy —
+"Integratsiyalar" bo'limiga qarang.
+
+### 3. O'rnatish, baza va build
+
+```bash
+npm ci              # bog'liqliklar (Prisma client avtomatik generatsiya bo'ladi)
+npm run db:migrate  # baza jadvallarini yaratish
+npm run db:seed     # boshlang'ich kontent bilan to'ldirish
+npm run build       # loyihani yig'ish (1-2 daqiqa)
+npm start           # 3100-portda ishga tushadi
+```
+
+Tekshirish:
+
+```bash
+curl -I http://127.0.0.1:3100/uz        # 200 OK
+curl -I http://127.0.0.1:3100/admin.html # 200 OK
+```
+
+> `db:seed` faqat **birinchi marta** kerak — u saytni boshlang'ich kontent
+> bilan to'ldiradi. Keyinchalik kontent admin panel orqali boshqariladi.
+> Qayta ishga tushirish xavfsiz (yozuvlar `slug`/`id` bo'yicha yangilanadi),
+> lekin admin panelda qilingan o'zgarishlar ustidan yozilishi mumkin.
 
 ### 4. Doimiy ishlashi uchun (systemd)
 
-`/etc/systemd/system/global-avenue.service` faylini yarating:
+`/etc/systemd/system/global-avenue.service`:
 
 ```ini
 [Unit]
@@ -76,7 +115,6 @@ Type=simple
 User=www-data
 WorkingDirectory=/var/www/global-avenue
 Environment=NODE_ENV=production
-EnvironmentFile=/var/www/global-avenue/.env.local
 ExecStart=/usr/bin/npm start
 Restart=always
 RestartSec=5
@@ -85,13 +123,15 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-Yoqish:
-
 ```bash
+sudo chown -R www-data:www-data /var/www/global-avenue/data
 sudo systemctl daemon-reload
 sudo systemctl enable --now global-avenue
 sudo systemctl status global-avenue
 ```
+
+> `data/` papkasiga yozish huquqi **majburiy** — baza fayli va yuklangan
+> rasmlar shu yerda saqlanadi.
 
 > PM2 ishlatsangiz: `pm2 start npm --name global-avenue -- start && pm2 save`
 
@@ -104,7 +144,7 @@ server {
     listen 80;
     server_name globalavenue.uz www.globalavenue.uz;
 
-    # Yuklanadigan rasm/video hajmi uchun
+    # Admin paneldan rasm yuklash uchun
     client_max_body_size 20M;
 
     gzip on;
@@ -125,124 +165,146 @@ server {
 }
 ```
 
-Yoqish va SSL:
-
 ```bash
 sudo ln -s /etc/nginx/sites-available/globalavenue.uz /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
-
-# Bepul SSL sertifikat
 sudo certbot --nginx -d globalavenue.uz -d www.globalavenue.uz
 ```
 
-> `X-Forwarded-For` sarlavhasi muhim: ariza formasidagi spam himoyasi
-> (daqiqasiga 5 ta so'rov) IP manzil bo'yicha ishlaydi.
+> `X-Forwarded-For` muhim: ariza formasidagi spam himoyasi (daqiqasiga 5 ta
+> so'rov) IP manzil bo'yicha ishlaydi. SSL esa admin panel paroli ochiq
+> uzatilmasligi uchun **majburiy**.
 
-### 6. Yangilanish (kelajakda kod o'zgarsa)
+### 6. Zaxira nusxa (backup)
+
+Butun kontent va arizalar bitta fayl va bitta papkada:
+
+```bash
+# Kunlik zaxira
+tar czf /backup/ga-$(date +%F).tar.gz \
+    /var/www/global-avenue/data/admin.db \
+    /var/www/global-avenue/data/uploads
+```
+
+Buni `crontab -e` ga qo'shib avtomatlashtiring.
+
+### 7. Yangilanish (kod o'zgarganda)
 
 ```bash
 cd /var/www/global-avenue
-npm ci && npm run build
+npm ci
+npm run db:migrate     # yangi migratsiyalar bo'lsa qo'llaniladi
+npm run build
 sudo systemctl restart global-avenue
 ```
 
+> `db:seed` ni **qayta ishlatmang** — admin paneldagi o'zgarishlar yo'qolishi mumkin.
+
 ---
 
-## B. Vercel (eng oson, bepul)
+## B. Vercel
 
-1. Loyihani GitHub'ga yuklang (yoki zip'ni ochib, yangi repo yarating).
+1. Loyihani GitHub'ga yuklang.
 2. [vercel.com](https://vercel.com) → **Add New → Project** → repo'ni tanlang.
-3. Vercel Next.js'ni o'zi taniydi — hech narsani o'zgartirmang, **Deploy**.
-4. **Settings → Environment Variables** bo'limida `.env.example` dagi
+3. **Settings → Environment Variables** da `.env.example` dagi
    o'zgaruvchilarni qo'shing.
-5. **Settings → Domains** da o'z domeningizni ulang.
+4. **Settings → Domains** da domenni ulang.
 
-Har safar kod yangilanganda Vercel avtomatik qayta deploy qiladi.
-
-> **Diqqat:** Vercel'da fayl tizimi vaqtinchalik. Shuning uchun
-> `data/leads.jsonl` arxivi saqlanmaydi — Telegram va CRM ulanishi
-> majburiy bo'ladi (pastga qarang).
+> ⚠️ **Muhim cheklov.** Vercel'da fayl tizimi vaqtinchalik va faqat o'qish
+> uchun. Ya'ni SQLite bazasi (`data/admin.db`) va yuklangan rasmlar
+> (`data/uploads/`) **saqlanmaydi** — har deploy'da yo'qoladi.
+>
+> Vercel'da ishlatish uchun quyidagilar kerak:
+> - baza: Postgres (Vercel Postgres, Neon, Supabase) →
+>   `prisma/schema.prisma` da `provider = "postgresql"` ga o'zgartirib,
+>   migratsiyalarni qayta yaratish;
+> - rasmlar: tashqi fayl saqlagich (Vercel Blob, S3, Cloudinary) →
+>   `app/api/admin/upload/route.ts` ni moslashtirish.
+>
+> Agar admin panel kerak bo'lsa, **A varianti ancha oddiy**.
 
 ---
 
-## C. Oddiy (shared) hosting — cPanel, FTP
+## C. Statik (shared hosting) — oxirgi chora
 
-Agar hostingda Node.js yo'q bo'lsa, saytni statik HTML sifatida yig'sa bo'ladi.
+Node.js umuman yo'q bo'lsa, saytni statik HTML sifatida yig'sa bo'ladi:
 
 ```bash
 npm ci
 NEXT_PUBLIC_SITE_URL=https://globalavenue.uz npm run build:static
 ```
 
-`out/` papkasi hosil bo'ladi — uning **ichidagi hamma narsani**
-hosting'ning `public_html/` papkasiga ko'chiring.
+`out/` papkasining **ichidagi hamma narsani** `public_html/` ga ko'chiring.
 
-### Bu variantda nima ishlamaydi
+| Imkoniyat | Holat |
+|---|---|
+| Barcha sahifalar, filtrlar, kalkulyator, galereya, ikki til | ✅ Ishlaydi |
+| **Admin panel** | ❌ Ishlamaydi |
+| **Ariza formasi** | ❌ Hech qayerga yubormaydi |
 
-| Imkoniyat | Holat | Nima qilish kerak |
-|---|---|---|
-| Barcha sahifalar, filtrlar, kalkulyator, galereya | ✅ Ishlaydi | — |
-| Ikki til (uz/ru) | ✅ Ishlaydi | — |
-| Til avtomatik aniqlanishi | ⚠️ Bosh sahifada JavaScript orqali | — |
-| **Ariza formasi** | ❌ **Hech qayerga yubormaydi** | Quyidagi yechimlardan birini tanlang |
+Bu rejimda kontent bazadan emas, `lib/data/` fayllaridan o'qiladi va
+har o'zgarishda saytni qayta yig'ib, qayta yuklash kerak bo'ladi.
 
-**Forma uchun yechimlar:**
+> Agar formani sozlamasdan shu variantda chiqarsangiz, mijozlarning
+> arizalari **yo'qoladi**. Buni e'tiborsiz qoldirmang — A variantga o'ting
+> yoki tashqi forma xizmatini (Formspree va h.k.) ulang.
 
-1. **Eng yaxshisi:** A yoki B variantga o'ting.
-2. Tashqi forma xizmatini ulang (Formspree, Getform va h.k.) —
-   `components/LeadForm.tsx` faylidagi `fetch('/api/lead', ...)` manzilini
-   o'sha xizmat bergan manzilga almashtiring.
-3. Vaqtinchalik: formani olib tashlab, faqat telefon va Telegram tugmalarini
-   qoldiring.
+---
 
-> Agar formani sozlamasdan statik variantda chiqarsangiz, mijozlarning
-> arizalari **yo'qoladi**. Buni e'tiborsiz qoldirmang.
+## Admin panel
+
+**Manzil:** `https://domen.uz/admin.html`
+(sayt pastki qismidagi havola orqali ham ochiladi)
+
+**Kirish:** `.env` dagi `ADMIN_PASSWORD_HASH` ga mos parol.
+
+Boshqariladigan bo'limlar: loyihalar va xonadonlar, qurilish hisobotlari,
+maqolalar, mijoz sharhlari, jamoa, vakansiyalar, kelib tushgan arizalar,
+media fayllar va sayt sozlamalari.
+
+Yuklangan rasmlar `data/uploads/` papkasida saqlanadi va `/api/uploads/...`
+manzili orqali beriladi.
 
 ---
 
 ## Integratsiyalar
 
-Barchasi `.env.local` faylida sozlanadi. Hech biri majburiy emas — sozlanmagani
-o'chirilgan holda qoladi va sayt baribir ishlayveradi.
+Barchasi `.env` faylida. Hech biri majburiy emas — sozlanmagani o'chirilgan
+holda qoladi va sayt baribir ishlayveradi.
 
 ### Telegram — yangi ariza bildirishnomasi
 
-1. Telegram'da [@BotFather](https://t.me/BotFather) ga yozing → `/newbot`
-   → bot nomini kiriting → **token** oling.
+1. [@BotFather](https://t.me/BotFather) → `/newbot` → **token** oling.
 2. Botni sotuv bo'limi guruhiga qo'shing va admin qiling.
-3. Guruh ID sini aniqlang: guruhga biror xabar yozing, so'ng brauzerda oching:
+3. Guruhga xabar yozing, so'ng oching:
    `https://api.telegram.org/bot<TOKEN>/getUpdates` → `"chat":{"id":-100...}`
-4. `.env.local` ga yozing:
+4. `.env` ga yozing:
 
 ```env
 TELEGRAM_BOT_TOKEN=1234567890:AAxx...
 TELEGRAM_CHAT_ID=-1001234567890
 ```
 
-Ariza kelganda guruhga ism, telefon, loyiha va manba ko'rsatilgan xabar tushadi.
-
 ### CRM (Bitrix24 / amoCRM)
 
-Bitrix24'da: **Dasturlar → Webhook → Kiruvchi webhook** → `crm.lead.add`
-huquqini bering → manzilni nusxalang:
+Bitrix24: **Dasturlar → Webhook → Kiruvchi webhook** → `crm.lead.add` huquqi:
 
 ```env
 CRM_WEBHOOK_URL=https://kompaniya.bitrix24.ru/rest/1/xxxxx/crm.lead.add.json
 ```
 
-Boshqa CRM ishlatilsa, `app/api/lead/route.ts` faylidagi `pushToCrm`
-funksiyasidagi maydon nomlarini moslashtirish kerak.
+Boshqa CRM bo'lsa, `app/api/lead/route.ts` dagi `pushToCrm` funksiyasidagi
+maydon nomlarini moslashtiring.
 
 ### Analitika
 
 ```env
-NEXT_PUBLIC_GTM_ID=GTM-XXXXXXX      # Google Tag Manager
-NEXT_PUBLIC_YM_ID=12345678          # Yandex Metrika
+NEXT_PUBLIC_GTM_ID=GTM-XXXXXXX
+NEXT_PUBLIC_YM_ID=12345678
 ```
 
 GTM orqali Google Analytics 4 va Meta Pixel ulanadi. Forma yuborilganda
-`lead_submit` hodisasi `dataLayer` ga yuboriladi — reklama konversiyasini
-shu orqali kuzatish mumkin.
+`dataLayer` ga `lead_submit` hodisasi yuboriladi.
 
 ---
 
@@ -253,28 +315,36 @@ shu orqali kuzatish mumkin.
 - [ ] UZ ↔ RU almashtirish ishlaydi
 - [ ] Loyihalar sahifasidagi filtrlar ishlaydi
 - [ ] Kalkulyator hisoblaydi
-- [ ] Test ariza yuborilganda Telegram'ga xabar keladi
+- [ ] `/admin.html` ochiladi, parol bilan kiriladi
+- [ ] Admin panelda loyiha tahrirlansa, saytda darhol ko'rinadi
+- [ ] Admin panelda rasm yuklansa, saytda ko'rinadi
+- [ ] Test ariza yuborilganda Telegram'ga xabar keladi va admin panelda ko'rinadi
 - [ ] Mobil telefonda ko'rinishi to'g'ri
-- [ ] `https://domen.uz/sitemap.xml` va `/robots.txt` ochiladi
+- [ ] `/sitemap.xml` va `/robots.txt` ochiladi
+- [ ] `data/` zaxira nusxasi sozlangan
 - [ ] Google Search Console va Yandex Webmaster'ga sayt qo'shilgan
-- [ ] PageSpeed Insights: mobil va desktopda 90+ ball
 
 ---
 
 ## Muammolar
 
-**Port band (`EADDRINUSE: 3100`)**
-Boshqa jarayon o'sha portni egallagan. To'xtatish: `lsof -ti :3100 | xargs kill -9`
-yoki `package.json` dagi `start` buyrug'ida portni o'zgartiring.
+**`Environment variable not found: DATABASE_URL`**
+Sozlamalar `.env.local` da yozilgan. Prisma faqat `.env` ni o'qiydi —
+faylni `.env` deb nomlang.
 
-**Rasmlar ko'rinmayapti**
-`public/img/` papkasi to'liq ko'chirilganini tekshiring. Fayl nomlari
-katta-kichik harfga sezgir (Linux'da `Hero.jpg` ≠ `hero.jpg`).
+**Admin parol to'g'ri kelmayapti**
+`.env` dagi hash'da `$` belgilari `\$` qilinganini tekshiring.
+
+**Port band (`EADDRINUSE: 3100`)**
+`lsof -ti :3100 | xargs kill -9`
+
+**Yuklangan rasmlar ko'rinmayapti / saqlanmayapti**
+`data/uploads/` papkasiga yozish huquqi borligini tekshiring:
+`sudo chown -R www-data:www-data /var/www/global-avenue/data`
 
 **Ariza kelmayapti**
-`journalctl -u global-avenue -n 50` bilan loglarni ko'ring. Telegram/CRM
-ishlamasa ham arizalar `data/leads.jsonl` fayliga yoziladi — u yerdan
-tekshirib ko'ring.
+`journalctl -u global-avenue -n 50` — loglarni ko'ring. Telegram/CRM
+ishlamasa ham arizalar bazaga va `data/leads.jsonl` fayliga yoziladi.
 
 **Build xotira yetishmasligi bilan yiqilyapti**
-Kichik VPS'da: `NODE_OPTIONS=--max-old-space-size=2048 npm run build`
+`NODE_OPTIONS=--max-old-space-size=2048 npm run build`
